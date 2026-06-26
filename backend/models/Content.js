@@ -1,9 +1,7 @@
 // models/Content.js
-// One schema covers every content type in the department portal:
-// notices, circulars, events, exam schedules, study material,
-// placement updates, and achievements. The `type` field tells us
-// which "flavor" a given document is, and `status` tracks where
-// it is in the approval workflow (see Phase 5).
+// FIX: viewCount, tags, isFeatured, expiresAt, scheduledPublishAt, version,
+//      previousVersions were accidentally nested inside the timestamps options
+//      object and were silently ignored. Moved into the main schema body.
 
 const mongoose = require('mongoose');
 
@@ -39,7 +37,7 @@ const contentSchema = new mongoose.Schema(
     // File paths saved by Multer (e.g. ['/uploads/notes-12345.pdf'])
     attachments: [{ type: String }],
 
-    // --- Workflow status (state machine - see Phase 5 diagram) ---
+    // --- Workflow status ---
     status: {
       type: String,
       enum: ['draft', 'pending_approval', 'published', 'rejected', 'archived'],
@@ -62,9 +60,44 @@ const contentSchema = new mongoose.Schema(
     },
 
     downloadCount: { type: Number, default: 0 },
-    publishedAt: { type: Date, default: null },
+    publishedAt:   { type: Date,   default: null },
+
+    // --- These were accidentally in the options object before (bug fix) ---
+    viewCount:    { type: Number, default: 0 },
+    lastViewedAt: { type: Date },
+    commentCount: { type: Number, default: 0 },
+    tags:         [{ type: String, trim: true }],
+    category: {
+      type: String,
+      enum: ['academic', 'administrative', 'event', 'news', 'general'],
+      default: 'general',
+    },
+    isFeatured: { type: Boolean, default: false },
+    expiresAt:  { type: Date, default: null },
+
+    // Content scheduling - processed by the scheduler job
+    scheduledPublishAt: { type: Date, default: null },
+
+    // Version tracking
+    version: { type: Number, default: 1 },
+    previousVersions: [
+      {
+        title:       String,
+        body:        String,
+        attachments: [String],
+        updatedAt:   { type: Date, default: Date.now },
+        updatedBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      },
+    ],
   },
   { timestamps: true }
 );
+
+contentSchema.index({ status: 1, type: 1 });
+contentSchema.index({ createdBy: 1, status: 1 });
+contentSchema.index({ tags: 1 });
+contentSchema.index({ publishedAt: -1 });
+// Index used by the scheduler job
+contentSchema.index({ scheduledPublishAt: 1, status: 1 });
 
 module.exports = mongoose.model('Content', contentSchema);

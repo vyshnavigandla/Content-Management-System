@@ -1,8 +1,11 @@
 // routes/contentRoutes.js
-// Combined Phase 4 + Phase 5 Routes
+// Additions over the original:
+//  - DELETE /:id/attachments  -> deleteAttachment
+//  - PUT    /:id/schedule     -> scheduleContent  (hod only)
+//  - DELETE /archived/bulk    -> bulkDeleteArchived (hod only)
 
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 
 const {
   createContent,
@@ -10,6 +13,7 @@ const {
   getContentById,
   updateContent,
   deleteContent,
+  deleteAttachment,
   submitForApproval,
   getPendingApprovals,
   approveContent,
@@ -17,20 +21,18 @@ const {
   archiveContent,
   getPublishedContent,
   trackDownload,
+  scheduleContent,
+  bulkDeleteArchived,
 } = require('../controllers/contentController');
 
-const { protect } = require('../middleware/authMiddleware');
-const { authorize } = require('../middleware/roleMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const { protect }    = require('../middleware/authMiddleware');
+const { authorize }  = require('../middleware/roleMiddleware');
+const upload         = require('../middleware/uploadMiddleware');
 
-// All routes require authentication
 router.use(protect);
 
-// =========================
-// Faculty / HOD Routes
-// =========================
+// ── Faculty / HOD ──────────────────────────────────────────────────────────
 
-// Create content
 router.post(
   '/',
   authorize('faculty', 'hod'),
@@ -38,66 +40,36 @@ router.post(
   createContent
 );
 
-// Get my content
-router.get(
-  '/mine',
-  authorize('faculty', 'hod'),
-  getMyContent
-);
+router.get('/mine', authorize('faculty', 'hod'), getMyContent);
 
-// =========================
-// Phase 5 Routes
-// =========================
+// ── Specific named routes (MUST come before /:id) ──────────────────────────
 
-// Must be before '/:id'
-router.put('/:id/download', trackDownload);
-router.get('/published', getPublishedContent);
+router.get('/published',       getPublishedContent);
+router.get('/pending',         authorize('hod'), getPendingApprovals);
 
-router.get(
-  '/pending',
-  authorize('hod'),
-  getPendingApprovals
-);
+// NEW: bulk delete archived (before /:id so "archived" isn't treated as an id)
+router.delete('/archived/bulk', authorize('hod'), bulkDeleteArchived);
 
-router.put(
-  '/:id/submit',
-  authorize('faculty', 'hod'),
-  submitForApproval
-);
+// ── Workflow actions ────────────────────────────────────────────────────────
 
-router.put(
-  '/:id/approve',
-  authorize('hod'),
-  approveContent
-);
+router.put('/:id/submit',    authorize('faculty', 'hod'), submitForApproval);
+router.put('/:id/approve',   authorize('hod'),            approveContent);
+router.put('/:id/reject',    authorize('hod'),            rejectContent);
+router.put('/:id/archive',   authorize('hod'),            archiveContent);
+router.put('/:id/download',  trackDownload);
 
-router.put(
-  '/:id/reject',
-  authorize('hod'),
-  rejectContent
-);
+// NEW: schedule a publish date (hod only)
+router.put('/:id/schedule',  authorize('hod'),            scheduleContent);
 
-router.put(
-  '/:id/archive',
-  authorize('hod'),
-  archiveContent
-);
+// NEW: remove a single attachment (owner only, draft/rejected only)
+router.delete('/:id/attachments', authorize('faculty', 'hod'), deleteAttachment);
 
-// =========================
-// Generic Content Routes
-// =========================
+// ── Generic CRUD ────────────────────────────────────────────────────────────
 
 router
   .route('/:id')
   .get(getContentById)
-  .put(
-    authorize('faculty', 'hod'),
-    upload.array('attachments', 5),
-    updateContent
-  )
-  .delete(
-    authorize('faculty', 'hod'),
-    deleteContent
-  );
+  .put(authorize('faculty', 'hod'), upload.array('attachments', 5), updateContent)
+  .delete(authorize('faculty', 'hod'), deleteContent);
 
 module.exports = router;
