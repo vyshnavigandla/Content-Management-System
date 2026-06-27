@@ -1,4 +1,5 @@
 // pages/ContentDetail.jsx
+// FIX: Content body now renders HTML properly using dangerouslySetInnerHTML
 // FIX: handleDownload previously only opened attachments[0], ignoring
 // any additional files. Now shows all attachments as individual download
 // links, each tracked separately.
@@ -10,6 +11,7 @@ import api from '../api/axios';
 import StatusBadge from '../components/StatusBadge';
 import CommentSection from '../components/CommentSection';
 import Spinner from '../components/Spinner';
+import DOMPurify from 'dompurify';
 import {
   ArrowLeftIcon,
   PencilIcon,
@@ -47,9 +49,7 @@ export default function ContentDetail() {
     }
   };
 
-  // FIX: track download for the specific file and open it.
-  // trackDownload increments the counter once per "download session"
-  // (we call it once regardless of how many files are clicked).
+  // Track download for the specific file and open it.
   const handleDownload = async (filePath, idx) => {
     setDownloadingIdx(idx);
     try {
@@ -71,6 +71,14 @@ export default function ContentDetail() {
 
   const getFileName = (filePath) => {
     return filePath.split('/').pop() || filePath;
+  };
+
+  // Helper function to get plain text for preview
+  const getPlainText = (html) => {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
   };
 
   if (loading) {
@@ -175,11 +183,48 @@ export default function ContentDetail() {
           </div>
         )}
 
-        {/* Content Body */}
-        <div className="mt-6 prose prose-sm max-w-none">
-          <div className="whitespace-pre-wrap text-gray-700 leading-relaxed">
-            {content.body}
-          </div>
+        {/* ⭐ FIX: Content Body - Renders HTML properly */}
+        <div className="mt-6">
+          {content.body ? (
+            <div 
+              className="prose prose-sm max-w-none text-gray-700
+                prose-headings:text-gray-900 prose-headings:font-semibold prose-headings:mt-4 prose-headings:mb-2
+                prose-h1:text-2xl prose-h1:font-bold
+                prose-h2:text-xl prose-h2:font-semibold
+                prose-h3:text-lg prose-h3:font-semibold
+                prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-2
+                prose-strong:text-gray-900 prose-strong:font-semibold
+                prose-em:text-gray-700
+                prose-ul:list-disc prose-ul:pl-5 prose-ul:my-2
+                prose-ol:list-decimal prose-ol:pl-5 prose-ol:my-2
+                prose-li:text-gray-700 prose-li:my-0.5
+                prose-a:text-blue-600 prose-a:underline prose-a:hover:text-blue-800
+                prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:text-gray-600 prose-blockquote:bg-gray-50 prose-blockquote:py-2 prose-blockquote:rounded-r
+                prose-code:text-sm prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+                prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:overflow-x-auto
+                prose-table:border-collapse prose-table:w-full
+                prose-th:border prose-th:border-gray-300 prose-th:bg-gray-100 prose-th:p-2 prose-th:text-left
+                prose-td:border prose-td:border-gray-300 prose-td:p-2
+                prose-img:rounded-lg prose-img:max-w-full prose-img:my-4
+                [&_*]:max-w-full"
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(content.body, {
+                  ALLOWED_TAGS: [
+                    'p', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                    'ul', 'ol', 'li', 'a', 'br', 'div', 'span', 'table', 'thead', 
+                    'tbody', 'tr', 'td', 'th', 'img', 'b', 'i', 'u', 'strike', 
+                    'blockquote', 'code', 'pre', 'hr', 'sub', 'sup', 'section',
+                    'article', 'header', 'footer', 'main', 'aside', 'figure',
+                    'figcaption', 'mark', 'small', 'time', 'address'
+                  ],
+                  ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'style', 'rel', 'id', 'title'],
+                  ALLOW_DATA_ATTR: false,
+                })
+              }} 
+            />
+          ) : (
+            <p className="text-gray-500 italic">No content body</p>
+          )}
         </div>
 
         {/* Tags */}
@@ -193,7 +238,7 @@ export default function ContentDetail() {
           </div>
         )}
 
-        {/* FIX: All attachments listed individually, each with its own download button */}
+        {/* All attachments listed individually, each with its own download button */}
         {content.attachments && content.attachments.length > 0 && (
           <div className="mt-6 border-t border-gray-100 pt-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">

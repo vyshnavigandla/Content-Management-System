@@ -1,91 +1,51 @@
 // utils/notificationHelper.js
 const Notification = require('../models/Notification');
 
-const createNotification = async ({ 
-  recipient, 
-  sender, 
-  type, 
-  title, 
-  message, 
-  link = '#', 
-  metadata = {} 
-}) => {
+const createNotification = async ({ recipient, sender, type, title, message, link = '#', metadata = {} }) => {
   try {
-    const notification = await Notification.create({
-      recipient,
-      sender,
-      type,
-      title,
-      message,
-      link,
-      metadata
-    });
-    
-    // Emit socket event for real-time updates
+    const notification = await Notification.create({ recipient, sender, type, title, message, link, metadata });
     if (global.io) {
       global.io.to(recipient.toString()).emit('new_notification', notification);
     }
-    
     return notification;
-  } catch (error) {
-    console.error('Failed to create notification:', error);
-    return null;
+  } catch (err) {
+    console.error('Failed to create notification:', err.message);
   }
 };
 
-// Helper for content workflow notifications
 const notifyContentStatusChange = async (content, actor, action) => {
-  const statusMap = {
+  const authorId = content.createdBy?._id || content.createdBy;
+  if (!authorId || authorId.toString() === actor._id.toString()) return;
+
+  const messages = {
     submitted: {
-      recipient: content.createdBy,
-      title: 'Content Submitted for Approval',
-      message: `Your content "${content.title}" has been submitted for review.`,
-      type: 'content_submitted'
+      type: 'content_submitted',
+      title: 'Content submitted for review',
+      message: `"${content.title}" has been submitted for approval.`,
     },
     approved: {
-      recipient: content.createdBy,
-      title: 'Content Approved',
-      message: `Your content "${content.title}" has been approved and published.`,
-      type: 'content_approved'
+      type: 'content_approved',
+      title: ' Content approved',
+      message: `Your content "${content.title}" was approved and published by ${actor.name}.`,
     },
     rejected: {
-      recipient: content.createdBy,
-      title: 'Content Rejected',
-      message: `Your content "${content.title}" was rejected. Reason: ${content.reviewRemarks || 'No reason provided'}`,
-      type: 'content_rejected'
-    }
+      type: 'content_rejected',
+      title: 'Content rejected',
+      message: `Your content "${content.title}" was rejected by ${actor.name}. Check the remarks.`,
+    },
   };
-  
-  const notificationData = statusMap[action];
-  if (!notificationData) return;
-  
-  // For submitted, notify HODs
-  if (action === 'submitted') {
-    const User = require('../models/User');
-    const hods = await User.find({ role: 'hod', isActive: true });
-    
-    for (const hod of hods) {
-      await createNotification({
-        recipient: hod._id,
-        sender: actor._id,
-        type: 'content_submitted',
-        title: 'New Content Pending Approval',
-        message: `${actor.name} submitted "${content.title}" for approval.`,
-        link: `/approvals`,
-        metadata: { contentId: content._id }
-      });
-    }
-    return;
-  }
-  
+
+  const payload = messages[action];
+  if (!payload) return;
+
   await createNotification({
-    recipient: notificationData.recipient,
+    recipient: authorId,
     sender: actor._id,
-    type: notificationData.type,
-    title: notificationData.title,
-    message: notificationData.message,
+    type: payload.type,
+    title: payload.title,
+    message: payload.message,
     link: `/content/${content._id}`,
-    metadata: { contentId: content._id }
+    metadata: { contentId: content._id },
   });
 };
 

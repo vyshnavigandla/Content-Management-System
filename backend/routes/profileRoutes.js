@@ -12,7 +12,7 @@ const {
 
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const { upload } = require('../middleware/uploadMiddleware'); // Changed: use destructuring
 
 router.use(protect);
 
@@ -23,6 +23,6 @@ router.get('/directory', getFacultyDirectory);
 router
   .route('/me')
   .get(authorize('faculty', 'hod'), getMyProfile)
-  .put(authorize('faculty', 'hod'), upload.single('photo'), updateMyProfile);
+  .put(authorize('faculty', 'hod'), upload.single('photo'), updateMyProfile); // Now works
 
 module.exports = router;

@@ -1,116 +1,187 @@
 // components/ContentCard.jsx
-// A card representing one content item. Shows different action buttons
-// depending on the user's role and the item's status.
-
 import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
+import { useState } from 'react';
+import api from '../api/axios';
+import { useAuth } from '../context/AuthContext';
+import DOMPurify from 'dompurify';
 
 const TYPE_LABELS = {
-  notice: 'Notice',
-  circular: 'Circular',
+  notice: 'Notice', 
+  circular: 'Circular', 
   event: 'Event',
-  exam_schedule: 'Exam Schedule',
+  exam_schedule: 'Exam Schedule', 
   study_material: 'Study Material',
-  placement_update: 'Placement Update',
+  placement_update: 'Placement Update', 
   achievement: 'Achievement',
 };
 
 const TYPE_COLORS = {
-  notice: 'from-blue-500 to-cyan-500 text-blue-700 bg-blue-100',
-  circular: 'from-purple-500 to-pink-500 text-purple-700 bg-purple-100',
-  event: 'from-orange-500 to-red-500 text-orange-700 bg-orange-100',
-  exam_schedule: 'from-yellow-500 to-amber-500 text-yellow-700 bg-yellow-100',
-  study_material: 'from-green-500 to-emerald-500 text-green-700 bg-green-100',
-  placement_update: 'from-indigo-500 to-blue-500 text-indigo-700 bg-indigo-100',
-  achievement: 'from-pink-500 to-rose-500 text-pink-700 bg-pink-100',
+  notice: 'text-blue-700 bg-blue-100',
+  circular: 'text-purple-700 bg-purple-100',
+  event: 'text-pink-700 bg-pink-100',
+  exam_schedule: 'text-orange-700 bg-orange-100',
+  study_material: 'text-green-700 bg-green-100',
+  placement_update: 'text-indigo-700 bg-indigo-100',
+  achievement: 'text-yellow-700 bg-yellow-100',
 };
 
-const TYPE_ICONS = {
-  notice: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-    </svg>
-  ),
-  circular: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  ),
-  event: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  ),
-  exam_schedule: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-    </svg>
-  ),
-  study_material: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-    </svg>
-  ),
-  placement_update: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-    </svg>
-  ),
-  achievement: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-    </svg>
-  ),
-};
+export default function ContentCard({ content, showStatus = true, onDelete, actions = null }) {
+  const [deleting, setDeleting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const { user } = useAuth();
 
-export default function ContentCard({ content, showStatus = true, actions = null }) {
-  const typeColor = TYPE_COLORS[content.type] || 'from-gray-500 to-slate-500 text-gray-700 bg-gray-100';
-  const typeIcon = TYPE_ICONS[content.type] || null;
+  const isOwner = user?._id === content.createdBy?._id;
+  const isHOD = user?.role === 'hod';
+
+  const canDelete =
+    isHOD ||
+    (isOwner && ['draft', 'rejected'].includes(content.status));
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const params = isHOD && content.status === 'published' ? '?confirm=true' : '';
+      await api.delete(`/content/${content._id}${params}`);
+      setShowConfirm(false);
+      if (onDelete) onDelete(content._id);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to delete content');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const getPlainText = (html) => {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
+  const plainTextBody = getPlainText(content.body);
+  const shouldTruncate = plainTextBody.length > 300;
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1 group">
-      {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider bg-gradient-to-r ${typeColor.split(' ').slice(0, 2).join(' ')} bg-opacity-10`}>
-            <span className="text-current opacity-75">{typeIcon}</span>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider ${TYPE_COLORS[content.type] || 'text-gray-700 bg-gray-100'}`}>
             {TYPE_LABELS[content.type] || content.type}
           </span>
           <h3 className="text-base font-semibold text-gray-900 mt-2 leading-snug">
-            <Link 
-              to={`/content/${content._id}`} 
-              className="hover:text-blue-600 transition-colors duration-200 line-clamp-2"
-            >
+            <Link to={`/content/${content._id}`} className="hover:text-blue-600 transition-colors line-clamp-2">
               {content.title}
             </Link>
           </h3>
         </div>
-        {showStatus && <StatusBadge status={content.status} size="xs" />}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {showStatus && <StatusBadge status={content.status} size="xs" />}
+          {canDelete && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              className={`transition-colors p-1 rounded ${
+                isHOD 
+                  ? 'text-red-500 hover:text-red-700 hover:bg-red-50' 
+                  : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+              }`}
+              title={isHOD ? 'Delete content (HOD)' : 'Delete content'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Study Material Details */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Content</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete <strong>"{content.title}"</strong>?
+              {content.status === 'published' && (
+                <span className="block mt-2 text-red-600">⚠️ This is published content and will be permanently removed!</span>
+              )}
+              {isHOD && !isOwner && (
+                <span className="block mt-2 text-orange-600">ℹ️ You are deleting content uploaded by <strong>{content.createdBy?.name}</strong></span>
+              )}
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowConfirm(false)} 
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content Body - Renders HTML properly */}
+      {content.body && (
+        <div className="mb-4 mt-2">
+          <div 
+            className="prose prose-sm max-w-none text-gray-700 
+              prose-headings:text-gray-900 prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1.5
+              prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-1.5
+              prose-strong:text-gray-900 prose-strong:font-semibold
+              prose-em:text-gray-700
+              prose-ul:list-disc prose-ul:pl-5 prose-ul:my-1.5
+              prose-ol:list-decimal prose-ol:pl-5 prose-ol:my-1.5
+              prose-li:text-gray-700 prose-li:my-0.5
+              prose-a:text-blue-600 prose-a:underline prose-a:hover:text-blue-800
+              prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:text-gray-600
+              prose-code:text-sm prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded"
+            dangerouslySetInnerHTML={{ 
+              __html: DOMPurify.sanitize(content.body, {
+                ALLOWED_TAGS: [
+                  'p', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                  'ul', 'ol', 'li', 'a', 'br', 'div', 'span', 'table', 'thead', 
+                  'tbody', 'tr', 'td', 'th', 'img', 'b', 'i', 'u', 'strike', 
+                  'blockquote', 'code', 'pre', 'hr', 'sub', 'sup'
+                ],
+                ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class', 'style', 'rel', 'id']
+              })
+            }} 
+          />
+        </div>
+      )}
+
+      {content.body && shouldTruncate && (
+        <Link 
+          to={`/content/${content._id}`}
+          className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-block mb-3 hover:underline"
+        >
+          Read full content →
+        </Link>
+      )}
+
       {content.type === 'study_material' && (
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {content.subject && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+            <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
               {content.subject}
             </span>
           )}
           {content.semester && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-medium">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
+            <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-medium">
               Semester {content.semester}
             </span>
           )}
         </div>
       )}
 
-      {/* Author */}
       {content.createdBy?.name && (
         <div className="flex items-center gap-2 mb-3">
           <div className="w-6 h-6 rounded-md bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
@@ -121,14 +192,25 @@ export default function ContentCard({ content, showStatus = true, actions = null
             {content.createdBy.designation && (
               <span className="text-gray-400 ml-1">({content.createdBy.designation})</span>
             )}
+            {isHOD && !isOwner && (
+              <span className="ml-2 text-xs text-orange-500 font-medium">(Faculty Content)</span>
+            )}
           </p>
         </div>
       )}
 
-      {/* Attachments Count */}
+      {/* Date only - Views REMOVED */}
+      <div className="flex items-center text-xs text-gray-400 mb-3">
+        <span>📅 {new Date(content.createdAt).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        })}</span>
+      </div>
+
       {content.attachments?.length > 0 && (
         <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 rounded-lg">
-          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
           </svg>
           <span className="text-xs text-gray-500">
@@ -137,7 +219,6 @@ export default function ContentCard({ content, showStatus = true, actions = null
         </div>
       )}
 
-      {/* Actions */}
       {actions && (
         <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
           {actions}

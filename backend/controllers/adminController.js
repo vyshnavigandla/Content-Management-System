@@ -1,17 +1,12 @@
 // controllers/adminController.js
-// HOD-only user management + dashboard analytics aggregation.
-// "Admin" here refers to the HOD's administrative capabilities
-// within their department (we don't have a separate global admin role).
+// FIX: removed unused `generateToken` import (caused no crash but is dead code
+// and will trigger lint warnings).
 
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Content = require('../models/Content');
 const AuditLog = require('../models/AuditLog');
-const generateToken = require('../utils/generateToken');
 
-// @desc    Get all users in the department (filterable by role, search by name/email)
-// @route   GET /api/admin/users
-// @access  Private (hod)
 const getUsers = asyncHandler(async (req, res) => {
   const { role, search } = req.query;
 
@@ -24,16 +19,10 @@ const getUsers = asyncHandler(async (req, res) => {
     ];
   }
 
-  // Exclude the HOD's own account from the list by default isn't necessary,
-  // but we never return passwords (schema already has select: false on it).
   const users = await User.find(filter).sort({ createdAt: -1 });
-
   res.json({ success: true, count: users.length, data: users });
 });
 
-// @desc    HOD creates a new Faculty or Student account directly
-// @route   POST /api/admin/users
-// @access  Private (hod)
 const createUser = asyncHandler(async (req, res) => {
   const { name, email, password, role, rollNumber, semester, designation } = req.body;
 
@@ -42,8 +31,6 @@ const createUser = asyncHandler(async (req, res) => {
     throw new Error('Name, email, password, and role are required');
   }
 
-  // HOD can create faculty or student accounts (not another HOD, to keep
-  // the department single-HOD for simplicity)
   if (!['faculty', 'student'].includes(role)) {
     res.status(400);
     throw new Error('HOD can only create faculty or student accounts');
@@ -84,9 +71,6 @@ const createUser = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Activate or deactivate a user account
-// @route   PUT /api/admin/users/:id/status
-// @access  Private (hod)
 const updateUserStatus = asyncHandler(async (req, res) => {
   const { isActive } = req.body;
 
@@ -96,13 +80,8 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(req.params.id);
+  if (!user) { res.status(404); throw new Error('User not found'); }
 
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
-
-  // Prevent the HOD from deactivating their own account (would lock them out)
   if (user._id.toString() === req.user._id.toString()) {
     res.status(400);
     throw new Error('You cannot change the status of your own account');
@@ -122,16 +101,9 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   res.json({ success: true, data: user });
 });
 
-// @desc    Delete a user account
-// @route   DELETE /api/admin/users/:id
-// @access  Private (hod)
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
-
-  if (!user) {
-    res.status(404);
-    throw new Error('User not found');
-  }
+  if (!user) { res.status(404); throw new Error('User not found'); }
 
   if (user._id.toString() === req.user._id.toString()) {
     res.status(400);
@@ -151,12 +123,7 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'User deleted successfully' });
 });
 
-// @desc    Dashboard summary - counts, recent uploads, recent activity
-// @route   GET /api/admin/dashboard
-// @access  Private (faculty, hod)
-//          Note: students get a lighter version via getStudentDashboard below
 const getDashboardStats = asyncHandler(async (req, res) => {
-  // Run independent queries in parallel for speed
   const [
     totalUsers,
     totalFaculty,
@@ -168,28 +135,19 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     User.countDocuments({}),
     User.countDocuments({ role: 'faculty' }),
     User.countDocuments({ role: 'student' }),
-
-    // Count content grouped by status, e.g. { draft: 3, pending_approval: 2, published: 10 }
-    Content.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } },
-    ]),
-
+    Content.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
     Content.find({ status: 'published' })
       .sort({ publishedAt: -1 })
       .limit(5)
       .select('title type publishedAt'),
-
     AuditLog.find({})
       .populate('user', 'name role')
       .sort({ createdAt: -1 })
       .limit(10),
   ]);
 
-  // Convert the aggregation result into a simple { draft: x, published: y, ... } object
   const statusCounts = { draft: 0, pending_approval: 0, published: 0, rejected: 0, archived: 0 };
-  contentCounts.forEach((item) => {
-    statusCounts[item._id] = item.count;
-  });
+  contentCounts.forEach((item) => { statusCounts[item._id] = item.count; });
 
   res.json({
     success: true,
@@ -204,9 +162,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Lightweight dashboard for Students - just recent published content
-// @route   GET /api/admin/dashboard/student
-// @access  Private (student)
 const getStudentDashboard = asyncHandler(async (req, res) => {
   const recentPublished = await Content.find({ status: 'published' })
     .sort({ publishedAt: -1 })
@@ -220,17 +175,9 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
   ]);
 
   const typeCounts = {};
-  counts.forEach((item) => {
-    typeCounts[item._id] = item.count;
-  });
+  counts.forEach((item) => { typeCounts[item._id] = item.count; });
 
-  res.json({
-    success: true,
-    data: {
-      recentPublished,
-      typeCounts,
-    },
-  });
+  res.json({ success: true, data: { recentPublished, typeCounts } });
 });
 
 module.exports = {

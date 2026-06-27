@@ -1,25 +1,11 @@
 // controllers/contentController.js
-// Improvements in this version:
-//  - deleteAttachment()  : remove individual files from content
-//  - scheduleContent()   : set/clear scheduledPublishAt
-//  - updateContent()     : now snapshots the previous version before saving
-//  - deleteContent()     : HOD can delete archived content; owner can delete draft
-//  - getPublishedContent(): now increments viewCount + sets lastViewedAt
-//  - trackView()         : dedicated view-tracking endpoint
-
-const asyncHandler  = require('express-async-handler');
-const path          = require('path');
-const fs            = require('fs');
-const Content       = require('../models/Content');
-const logAction     = require('../utils/auditLogger');
+const asyncHandler = require('express-async-handler');
+const path = require('path');
+const fs = require('fs');
+const Content = require('../models/Content');
+const logAction = require('../utils/auditLogger');
 const { notifyContentStatusChange } = require('../utils/notificationHelper');
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Safely delete a file from disk. Swallows errors so a missing file never
- *  crashes a request. */
 const removeFile = (filePath) => {
   try {
     const abs = path.join(__dirname, '..', filePath);
@@ -29,9 +15,41 @@ const removeFile = (filePath) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Existing handlers (unchanged logic, bug fixes noted inline)
-// ---------------------------------------------------------------------------
+const generateSlug = (title) => {
+  if (!title) return '';
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
+const calculateReadingTime = (text) => {
+  if (!text) return 0;
+  const wordsPerMinute = 200;
+  const words = text.split(/\s+/).length;
+  return Math.ceil(words / wordsPerMinute);
+};
+
+// FIX: upload.fields() stores files as req.files[fieldName], NOT a flat array
+const getAttachmentsFromReq = (req) => {
+  if (!req.files) return [];
+  if (!Array.isArray(req.files)) {
+    return (req.files['attachments'] || []).map((f) => `/uploads/${f.filename}`);
+  }
+  return req.files
+    .filter((f) => f.fieldname !== 'featuredImage')
+    .map((f) => `/uploads/${f.filename}`);
+};
+
+const getFeaturedImageFromReq = (req) => {
+  if (!req.files) return null;
+  if (!Array.isArray(req.files)) {
+    const arr = req.files['featuredImage'];
+    return arr && arr.length > 0 ? `/uploads/${arr[0].filename}` : null;
+  }
+  const f = req.files.find((f) => f.fieldname === 'featuredImage');
+  return f ? `/uploads/${f.filename}` : null;
+};
 
 const submitForApproval = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id);
@@ -45,7 +63,6 @@ const submitForApproval = asyncHandler(async (req, res) => {
 
   content.status = 'pending_approval';
   content.reviewRemarks = '';
-  // Clear any pending schedule - submitting for approval takes priority
   content.scheduledPublishAt = null;
   await content.save();
 
@@ -77,7 +94,7 @@ const approveContent = asyncHandler(async (req, res) => {
   content.reviewedBy = req.user._id;
   content.reviewRemarks = remarks || '';
   content.publishedAt = new Date();
-  content.scheduledPublishAt = null; // clear any leftover schedule
+  content.scheduledPublishAt = null;
   await content.save();
 
   await notifyContentStatusChange(content, req.user, 'approved');
@@ -160,20 +177,40 @@ const trackDownload = asyncHandler(async (req, res) => {
 });
 
 const createContent = asyncHandler(async (req, res) => {
-  const { title, body, type, subject, semester, tags, category } = req.body;
+  const {
+    title, body, type, subject, semester, tags, category,
+    excerpt, metaTitle, metaDescription, metaKeywords, slug,
+  } = req.body;
+
   if (!title || !body || !type) {
     res.status(400); throw new Error('Title, body, and type are required');
   }
 
-  const attachments = req.files ? req.files.map((f) => `/uploads/${f.filename}`) : [];
+  const attachments = getAttachmentsFromReq(req);
+  const featuredImagePath = getFeaturedImageFromReq(req);
+  const finalSlug = slug || generateSlug(title);
+  const readingTime = calculateReadingTime(body);
+
+  const seoData = {
+    metaTitle: metaTitle || title,
+    metaDescription: metaDescription || '',
+    metaKeywords: metaKeywords
+      ? metaKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+      : [],
+    slug: finalSlug,
+  };
 
   const content = await Content.create({
     title, body, type,
-    subject:  type === 'study_material' ? subject  : undefined,
+    subject: type === 'study_material' ? subject : undefined,
     semester: type === 'study_material' ? semester : undefined,
-    tags:     tags ? tags.split(',').map((t) => t.trim()) : [],
+    tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
     category: category || 'general',
     attachments,
+    featuredImage: featuredImagePath || '',
+    excerpt: excerpt || '',
+    seo: seoData,
+    readingTime,
     status: 'draft',
     createdBy: req.user._id,
   });
@@ -185,7 +222,7 @@ const getMyContent = asyncHandler(async (req, res) => {
   const { status, type } = req.query;
   const filter = { createdBy: req.user._id };
   if (status) filter.status = status;
-  if (type)   filter.type   = type;
+  if (type) filter.type = type;
 
   const content = await Content.find(filter).sort({ createdAt: -1 });
   res.json({ success: true, count: content.length, data: content });
@@ -193,7 +230,7 @@ const getMyContent = asyncHandler(async (req, res) => {
 
 const getContentById = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id)
-    .populate('createdBy',  'name role designation')
+    .populate('createdBy', 'name role designation')
     .populate('reviewedBy', 'name role');
 
   if (!content) { res.status(404); throw new Error('Content not found'); }
@@ -207,17 +244,15 @@ const getContentById = asyncHandler(async (req, res) => {
     res.status(403); throw new Error('You can only view your own unpublished content');
   }
 
-  // Track views on published content
   if (content.status === 'published') {
-    content.viewCount    += 1;
-    content.lastViewedAt  = new Date();
+    content.viewCount += 1;
+    content.lastViewedAt = new Date();
     await content.save();
   }
 
   res.json({ success: true, data: content });
 });
 
-/** Snapshot current version before applying edits. */
 const updateContent = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id);
   if (!content) { res.status(404); throw new Error('Content not found'); }
@@ -228,27 +263,50 @@ const updateContent = asyncHandler(async (req, res) => {
     res.status(400); throw new Error('Only draft or rejected content can be edited');
   }
 
-  const { title, body, subject, semester, tags, category } = req.body;
+  const {
+    title, body, subject, semester, tags, category,
+    excerpt, metaTitle, metaDescription, metaKeywords, slug,
+  } = req.body;
 
-  // Save a version snapshot before mutating
+  // FIX: snapshot now includes excerpt and featuredImage to match schema
   content.previousVersions.push({
-    title:       content.title,
-    body:        content.body,
+    title: content.title,
+    body: content.body,
     attachments: [...content.attachments],
-    updatedBy:   req.user._id,
+    excerpt: content.excerpt || '',
+    featuredImage: content.featuredImage || '',
+    updatedBy: req.user._id,
   });
   content.version += 1;
 
-  if (title    !== undefined) content.title    = title;
-  if (body     !== undefined) content.body     = body;
-  if (subject  !== undefined) content.subject  = subject;
+  if (title !== undefined) content.title = title;
+  if (body !== undefined) {
+    content.body = body;
+    content.readingTime = calculateReadingTime(body);
+  }
+  if (subject !== undefined) content.subject = subject;
   if (semester !== undefined) content.semester = semester;
-  if (tags     !== undefined) content.tags     = tags.split(',').map((t) => t.trim());
+  if (tags !== undefined) content.tags = tags.split(',').map((t) => t.trim()).filter(Boolean);
   if (category !== undefined) content.category = category;
+  if (excerpt !== undefined) content.excerpt = excerpt;
 
-  if (req.files && req.files.length > 0) {
-    const newFiles = req.files.map((f) => `/uploads/${f.filename}`);
-    content.attachments = [...content.attachments, ...newFiles];
+  if (!content.seo) content.seo = {};
+  if (metaTitle !== undefined) content.seo.metaTitle = metaTitle;
+  if (metaDescription !== undefined) content.seo.metaDescription = metaDescription;
+  if (metaKeywords !== undefined) {
+    content.seo.metaKeywords = metaKeywords.split(',').map((k) => k.trim()).filter(Boolean);
+  }
+  if (slug !== undefined) content.seo.slug = slug || generateSlug(content.title);
+
+  const newAttachments = getAttachmentsFromReq(req);
+  if (newAttachments.length > 0) {
+    content.attachments = [...content.attachments, ...newAttachments];
+  }
+
+  const newFeaturedImage = getFeaturedImageFromReq(req);
+  if (newFeaturedImage) {
+    if (content.featuredImage) removeFile(content.featuredImage);
+    content.featuredImage = newFeaturedImage;
   }
 
   if (content.status === 'rejected') {
@@ -260,54 +318,58 @@ const updateContent = asyncHandler(async (req, res) => {
   res.json({ success: true, data: content });
 });
 
-/**
- * FIX: HOD can delete archived content; owner can still delete their own draft.
- * Previously only owners could delete, and only drafts – leaving no way for
- * the HOD to clean up archived content.
- */
 const deleteContent = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id);
   if (!content) { res.status(404); throw new Error('Content not found'); }
 
   const isOwner = content.createdBy.toString() === req.user._id.toString();
-  const isHOD   = req.user.role === 'hod';
+  const isHOD = req.user.role === 'hod';
 
-  // Owner can delete their own drafts
-  if (isOwner && content.status === 'draft') {
+  if (isOwner && ['draft', 'rejected'].includes(content.status)) {
     content.attachments.forEach(removeFile);
+    if (content.featuredImage) removeFile(content.featuredImage);
     await content.deleteOne();
     await logAction({
       user: req.user._id, action: 'CONTENT_DELETED',
-      targetId: req.params.id, remarks: `Draft "${content.title}" deleted by owner`,
+      targetId: req.params.id,
+      remarks: `Draft "${content.title}" deleted by owner`,
     });
-    return res.json({ success: true, message: 'Draft deleted successfully' });
+    return res.json({ success: true, message: 'Content deleted successfully' });
   }
 
-  // HOD can delete archived content
   if (isHOD && content.status === 'archived') {
     content.attachments.forEach(removeFile);
+    if (content.featuredImage) removeFile(content.featuredImage);
     await content.deleteOne();
     await logAction({
       user: req.user._id, action: 'CONTENT_DELETED',
-      targetId: req.params.id, remarks: `Archived "${content.title}" deleted by HOD`,
+      targetId: req.params.id,
+      remarks: `Archived "${content.title}" deleted by HOD`,
     });
     return res.json({ success: true, message: 'Archived content deleted successfully' });
   }
 
+  if (isHOD && content.status === 'published') {
+    const confirmDelete = req.query.confirm === 'true';
+    if (!confirmDelete) {
+      res.status(400);
+      throw new Error('To delete published content, add ?confirm=true to the URL');
+    }
+    content.attachments.forEach(removeFile);
+    if (content.featuredImage) removeFile(content.featuredImage);
+    await content.deleteOne();
+    await logAction({
+      user: req.user._id, action: 'PUBLISHED_CONTENT_DELETED',
+      targetId: req.params.id,
+      remarks: `Published "${content.title}" deleted by HOD`,
+    });
+    return res.json({ success: true, message: 'Published content deleted successfully' });
+  }
+
   res.status(403);
-  throw new Error('You are not authorised to delete this content in its current state');
+  throw new Error('You are not authorized to delete this content in its current state');
 });
 
-// ---------------------------------------------------------------------------
-// NEW: Delete a single attachment from a draft/rejected content item
-// ---------------------------------------------------------------------------
-
-/**
- * @desc    Remove one attachment file from a content item
- * @route   DELETE /api/content/:id/attachments
- * @body    { filePath: "/uploads/filename.pdf" }
- * @access  Private (owner only, draft/rejected status only)
- */
 const deleteAttachment = asyncHandler(async (req, res) => {
   const { filePath } = req.body;
   if (!filePath) { res.status(400); throw new Error('filePath is required'); }
@@ -318,58 +380,34 @@ const deleteAttachment = asyncHandler(async (req, res) => {
   if (content.createdBy.toString() !== req.user._id.toString()) {
     res.status(403); throw new Error('You can only modify your own content');
   }
-
   if (!['draft', 'rejected'].includes(content.status)) {
-    res.status(400);
-    throw new Error('Attachments can only be removed from draft or rejected content');
+    res.status(400); throw new Error('Attachments can only be removed from draft or rejected content');
   }
-
   if (!content.attachments.includes(filePath)) {
     res.status(404); throw new Error('Attachment not found on this content item');
   }
 
-  // Remove from array
   content.attachments = content.attachments.filter((a) => a !== filePath);
   await content.save();
-
-  // Delete the physical file
   removeFile(filePath);
 
   await logAction({
     user: req.user._id, action: 'ATTACHMENT_DELETED',
-    targetId: content._id, remarks: `Attachment "${filePath}" removed from "${content.title}"`,
+    targetId: content._id,
+    remarks: `Attachment "${filePath}" removed from "${content.title}"`,
   });
 
   res.json({ success: true, data: content });
 });
 
-// ---------------------------------------------------------------------------
-// NEW: Schedule or clear a scheduled publish date (HOD only)
-// ---------------------------------------------------------------------------
-
-/**
- * @desc    Set or clear scheduledPublishAt on an approved-but-not-yet-published
- *          content item. The scheduler job (utils/contentScheduler.js) will
- *          auto-publish when the time arrives.
- *
- *          Pass { scheduledPublishAt: "2025-09-01T08:00:00Z" } to schedule.
- *          Pass { scheduledPublishAt: null } to clear (publishes immediately on
- *          next approval, or use approve endpoint to publish now).
- *
- * @route   PUT /api/content/:id/schedule
- * @access  Private (hod)
- */
 const scheduleContent = asyncHandler(async (req, res) => {
   const { scheduledPublishAt } = req.body;
 
   const content = await Content.findById(req.params.id);
   if (!content) { res.status(404); throw new Error('Content not found'); }
 
-  // Only allow scheduling content that is pending_approval or currently draft
-  // (not yet live). HOD can schedule while approving, or pre-schedule a draft.
   if (!['pending_approval', 'draft'].includes(content.status)) {
-    res.status(400);
-    throw new Error('Only pending or draft content can be scheduled');
+    res.status(400); throw new Error('Only pending or draft content can be scheduled');
   }
 
   if (scheduledPublishAt) {
@@ -398,16 +436,6 @@ const scheduleContent = asyncHandler(async (req, res) => {
   res.json({ success: true, data: content });
 });
 
-// ---------------------------------------------------------------------------
-// NEW: Bulk delete archived content (HOD convenience)
-// ---------------------------------------------------------------------------
-
-/**
- * @desc    Delete all archived content (or a filtered subset by type)
- * @route   DELETE /api/content/archived/bulk
- * @query   type (optional) - filter by content type
- * @access  Private (hod)
- */
 const bulkDeleteArchived = asyncHandler(async (req, res) => {
   const filter = { status: 'archived' };
   if (req.query.type) filter.type = req.query.type;
@@ -417,26 +445,71 @@ const bulkDeleteArchived = asyncHandler(async (req, res) => {
     return res.json({ success: true, deleted: 0, message: 'No archived content found' });
   }
 
-  // Remove physical files
-  items.forEach((item) => item.attachments.forEach(removeFile));
+  items.forEach((item) => {
+    item.attachments.forEach(removeFile);
+    if (item.featuredImage) removeFile(item.featuredImage);
+  });
 
   const ids = items.map((i) => i._id);
   await Content.deleteMany({ _id: { $in: ids } });
 
   await logAction({
     user: req.user._id, action: 'CONTENT_BULK_DELETED',
-    targetId: req.user._id, // no single target for a bulk op
-    targetType: 'user',
+    targetId: req.user._id, targetType: 'user',
     remarks: `HOD bulk-deleted ${ids.length} archived item(s)`,
   });
 
   res.json({ success: true, deleted: ids.length });
 });
 
+const getContentBySlug = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const content = await Content.findOne({ 'seo.slug': slug })
+    .populate('createdBy', 'name role designation')
+    .populate('reviewedBy', 'name role');
+
+  if (!content) { res.status(404); throw new Error('Content not found'); }
+
+  if (req.user.role === 'student' && content.status !== 'published') {
+    res.status(403); throw new Error('This content is not published yet');
+  }
+
+  const isOwner = content.createdBy._id.toString() === req.user._id.toString();
+  if (req.user.role === 'faculty' && content.status !== 'published' && !isOwner) {
+    res.status(403); throw new Error('You can only view your own unpublished content');
+  }
+
+  if (content.status === 'published') {
+    content.viewCount += 1;
+    content.lastViewedAt = new Date();
+    await content.save();
+  }
+
+  res.json({ success: true, data: content });
+});
+
+// FIX: was defined but missing from module.exports in original
+const getPublicContentBySlug = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const content = await Content.findOne({ 'seo.slug': slug, status: 'published' })
+    .populate('createdBy', 'name role designation')
+    .populate('reviewedBy', 'name role');
+
+  if (!content) { res.status(404); throw new Error('Content not found'); }
+
+  content.viewCount += 1;
+  content.lastViewedAt = new Date();
+  await content.save();
+
+  res.json({ success: true, data: content });
+});
+
 module.exports = {
   createContent,
   getMyContent,
   getContentById,
+  getContentBySlug,
+  getPublicContentBySlug,
   updateContent,
   deleteContent,
   deleteAttachment,

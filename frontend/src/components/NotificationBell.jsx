@@ -15,13 +15,24 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
 
+  // Listen for real-time notifications via socket
   useEffect(() => {
-    // Close dropdown when clicking outside
+    if (window.socket) {
+      const handleNewNotification = (notification) => {
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
+      };
+      
+      window.socket.on('new_notification', handleNewNotification);
+      return () => window.socket.off('new_notification', handleNewNotification);
+    }
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
@@ -33,13 +44,16 @@ export default function NotificationBell() {
 
   const fetchNotifications = async () => {
     try {
+      setLoading(true);
       const res = await api.get('/notifications', {
         params: { limit: 10 }
       });
-      setNotifications(res.data.data.notifications);
-      setUnreadCount(res.data.data.unreadCount);
+      setNotifications(res.data.data.notifications || []);
+      setUnreadCount(res.data.data.unreadCount || 0);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,22 +102,36 @@ export default function NotificationBell() {
     return colors[type] || 'border-gray-200 bg-gray-50';
   };
 
+  const getNotificationIcon = (type) => {
+    const icons = {
+      content_submitted: '📤',
+      content_approved: '✅',
+      content_rejected: '❌',
+      content_published: '📢',
+      comment_added: '💬',
+      mention: '👤',
+      system: '⚙️'
+    };
+    return icons[type] || '📌';
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+        aria-label="Notifications"
       >
         <BellIcon className="h-6 w-6" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full transform translate-x-1/2 -translate-y-1/2 ring-2 ring-white">
+          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full transform translate-x-1/2 -translate-y-1/2 ring-2 ring-white min-w-[20px]">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-96 max-h-[32rem] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 animate-slideDown">
+        <div className="absolute right-0 mt-2 w-96 max-h-[32rem] bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
             <h3 className="font-semibold text-gray-900">Notifications</h3>
             {unreadCount > 0 && (
@@ -136,7 +164,8 @@ export default function NotificationBell() {
                     notification.read ? 'opacity-75' : 'bg-blue-50/50'
                   } ${getNotificationColor(notification.type)}`}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">{getNotificationIcon(notification.type)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">
                         {notification.title}
@@ -149,7 +178,7 @@ export default function NotificationBell() {
                       </p>
                     </div>
                     {!notification.read && (
-                      <span className="flex-shrink-0 w-2 h-2 mt-1.5 bg-blue-500 rounded-full"></span>
+                      <span className="flex-shrink-0 w-2 h-2 mt-2 bg-blue-500 rounded-full"></span>
                     )}
                   </div>
                 </div>
@@ -160,7 +189,10 @@ export default function NotificationBell() {
           {notifications.length > 0 && (
             <div className="border-t border-gray-200 p-2 bg-gray-50">
               <button
-                onClick={() => navigate('/notifications')}
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/notifications');
+                }}
                 className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
               >
                 View all notifications
@@ -169,22 +201,6 @@ export default function NotificationBell() {
           )}
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        .animate-slideDown {
-          animation: slideDown 0.2s ease-out;
-        }
-      `}</style>
     </div>
   );
 }

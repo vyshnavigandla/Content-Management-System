@@ -1,4 +1,5 @@
 // main.jsx
+// FIX: socket.io URL had /api suffix which broke the handshake — stripped it
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { StrictMode } from 'react';
@@ -8,8 +9,10 @@ import './index.css';
 import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
-// --- Initialize Socket.io BEFORE rendering ---
-const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+// FIX: strip /api so socket connects to server root, not /api path
+const SOCKET_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '');
+
+const socket = io(SOCKET_URL, {
   autoConnect: true,
   reconnection: true,
   reconnectionAttempts: 5,
@@ -18,42 +21,24 @@ const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
   timeout: 20000,
 });
 
-// Make socket globally available for the app
 window.socket = socket;
 
-// Socket event listeners
 socket.on('connect', () => {
-  console.log('🔌 Socket connected successfully');
-  
-  // If user is already logged in, register them
-  const user = localStorage.getItem('user');
-  if (user) {
+  console.log('🔌 Socket connected');
+  const saved = localStorage.getItem('user');
+  if (saved) {
     try {
-      const userData = JSON.parse(user);
-      if (userData._id) {
-        socket.emit('register', userData._id);
-        console.log(`User ${userData.name} registered with socket`);
-      }
-    } catch (error) {
-      console.error('Failed to parse user data:', error);
+      const userData = JSON.parse(saved);
+      if (userData._id) socket.emit('register', userData._id);
+    } catch {
+      // ignore
     }
   }
 });
 
-socket.on('disconnect', () => {
-  console.log('🔌 Socket disconnected');
-});
+socket.on('disconnect', () => console.log('🔌 Socket disconnected'));
+socket.on('connect_error', (err) => console.error('Socket error:', err.message));
 
-socket.on('connect_error', (error) => {
-  console.error('Socket connection error:', error.message);
-});
-
-socket.on('new_notification', (notification) => {
-  console.log('New notification received:', notification);
-  // You can show a toast notification here
-});
-
-// --- Render the App ---
 ReactDOM.createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ErrorBoundary>

@@ -14,7 +14,7 @@ const {
 
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const { upload } = require('../middleware/uploadMiddleware'); // Changed: use destructuring
 
 router.use(protect);
 
@@ -25,7 +25,7 @@ router.get('/matches', authorize('student'), getMatches);       // students only
 router
   .route('/me')
   .get(authorize('student'), getMyProfile)
-  .put(authorize('student'), upload.single('photo'), updateMyProfile);
+  .put(authorize('student'), upload.single('photo'), updateMyProfile); // Now works
 
 router.get('/:id', getProfileById); // public profile view
 
