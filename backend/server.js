@@ -1,50 +1,62 @@
 // server.js
-// Fixes over the original:
-//  1. Duplicate `app.use('/api/comments', ...)` removed.
-//  2. Duplicate `io.on('connection', ...)` block removed (merged into one).
-//  3. startScheduler() called after DB connects for content scheduling.
+// Fix CORS for production deployment
 
-const path      = require('path');
-const express   = require('express');
-const dotenv    = require('dotenv');
-const cors      = require('cors');
-const http      = require('http');
-const socketIo  = require('socket.io');
+const path = require('path');
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const http = require('http');
+const socketIo = require('socket.io');
 
 dotenv.config();
 
-const connectDB              = require('./config/db');
+const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { startScheduler } = require('./utils/ContentScheduler');
 
 // Connect to MongoDB, then kick off the scheduler
 connectDB().then(() => startScheduler());
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
 
 // ── Socket.io ───────────────────────────────────────────────────────────────
 
+// ✅ FIX: Allow all origins for production, or add your Vercel URL
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:3000',
+  'https://content-management-system-hh2r2a18p-gandla-vyshnavi.vercel.app',
+  'https://content-management-system-topaz.vercel.app',
   process.env.CLIENT_URL,
-];
+].filter(Boolean); // Remove undefined values
 
+// ✅ FIX: Socket.io CORS configuration
 const io = socketIo(server, {
   cors: {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST'],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        console.log('Blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   },
 });
 
 global.io = io;
 
-// Single connection handler (was duplicated in the original)
+// Single connection handler
 io.on('connection', (socket) => {
   console.log('🟢 New client connected:', socket.id);
 
-  // Auto-join room from query string (for backward compat with older clients)
   const queryUserId = socket.handshake.query.userId;
   if (queryUserId) {
     socket.join(queryUserId);
@@ -52,7 +64,6 @@ io.on('connection', (socket) => {
     console.log(`👤 User ${queryUserId} auto-joined their room`);
   }
 
-  // Explicit register event (preferred)
   socket.on('register', (userId) => {
     if (userId) {
       socket.join(userId);
@@ -77,16 +88,24 @@ io.on('connection', (socket) => {
 
 // ── Core middleware ─────────────────────────────────────────────────────────
 
+// ✅ FIX: CORS middleware for Express
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
+      console.log('Blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -94,23 +113,22 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/api/health', (req, res) => {
   res.json({
-    success:   true,
-    message:   'Department CMS API is running',
+    success: true,
+    message: 'Department CMS API is running',
     timestamp: new Date().toISOString(),
   });
 });
 
 // ── Routes ──────────────────────────────────────────────────────────────────
 
-app.use('/api/auth',             require('./routes/authRoutes'));
-app.use('/api/content',          require('./routes/contentRoutes'));
-app.use('/api/profiles',         require('./routes/profileRoutes'));
-app.use('/api/admin',            require('./routes/adminRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/content', require('./routes/contentRoutes'));
+app.use('/api/profiles', require('./routes/profileRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/student-profiles', require('./routes/studentProfileRoutes'));
-app.use('/api/notifications',    require('./routes/notificationRoutes'));
-app.use('/api/comments',         require('./routes/commentRoutes'));  // registered ONCE
-app.use('/api/analytics',        require('./routes/analyticsRoutes'));
-//app.use('/api/users/faculty', facultyRoutes);
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/comments', require('./routes/commentRoutes'));
+app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -126,4 +144,5 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   console.log(`Socket.io ready for real-time notifications`);
+  console.log(`CORS allowed origins:`, allowedOrigins);
 });
