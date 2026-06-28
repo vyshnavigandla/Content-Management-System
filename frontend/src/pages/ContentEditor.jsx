@@ -1,5 +1,5 @@
 // pages/ContentEditor.jsx
-// REMOVED: Featured Image and SEO Settings (not performing well)
+// ADDED: Target Audience field (UG / PG / Both)
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
@@ -13,6 +13,12 @@ const TYPES = [
   { value: 'study_material', label: 'Study Material' },
   { value: 'placement_update', label: 'Placement Update' },
   { value: 'achievement', label: 'Achievement' },
+];
+
+const TARGET_AUDIENCE = [
+  { value: 'ug', label: '🎓 UG Students' },
+  { value: 'pg', label: '📚 PG Students' },
+  { value: 'both', label: '👥 Both UG & PG' },
 ];
 
 const htmlWordCount = (html) => {
@@ -30,7 +36,8 @@ export default function ContentEditor() {
   const [form, setForm] = useState({ 
     title: '', 
     body: '', 
-    type: 'notice', 
+    type: 'notice',
+    targetAudience: 'both', // ✅ NEW: Default to 'both'
     subject: '', 
     semester: '', 
     tags: '', 
@@ -52,7 +59,8 @@ export default function ContentEditor() {
         setForm({ 
           title: d.title, 
           body: d.body, 
-          type: d.type, 
+          type: d.type,
+          targetAudience: d.targetAudience || 'both', // ✅ Load existing value
           subject: d.subject || '', 
           semester: d.semester || '', 
           tags: (d.tags || []).join(', '), 
@@ -71,7 +79,7 @@ export default function ContentEditor() {
     setForm({ ...form, [name]: value });
   };
 
-  // ✅ Attachments Handler with Preview
+  // Attachments Handler with Preview
   const handleAttachmentsChange = (e) => {
     const newFiles = Array.from(e.target.files);
     if (newFiles.length > 5) {
@@ -106,6 +114,7 @@ export default function ContentEditor() {
     data.append('title', form.title);
     data.append('body', form.body);
     data.append('type', form.type);
+    data.append('targetAudience', form.targetAudience); // ✅ NEW: Send target audience
     if (form.tags) data.append('tags', form.tags);
     if (form.excerpt) data.append('excerpt', form.excerpt);
     if (form.type === 'study_material') {
@@ -209,6 +218,35 @@ export default function ContentEditor() {
             </select>
           </div>
 
+          {/* ✅ NEW: Target Audience */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Target Audience <span className="text-red-500">*</span>
+            </label>
+            <div className="flex flex-wrap gap-3">
+              {TARGET_AUDIENCE.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 cursor-pointer transition-all ${
+                    form.targetAudience === option.value
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 hover:border-gray-300 bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="targetAudience"
+                    value={option.value}
+                    checked={form.targetAudience === option.value}
+                    onChange={handleChange}
+                    className="hidden"
+                  />
+                  <span className="text-sm font-medium">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Study Material Fields */}
           {form.type === 'study_material' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-xl">
@@ -275,7 +313,7 @@ export default function ContentEditor() {
             <p className="text-xs text-gray-400 mt-1">Separate tags with commas</p>
           </div>
 
-          {/* ✅ Attachments with Preview */}
+          {/* Attachments with Preview */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Attachments (max 5)</label>
             <div 

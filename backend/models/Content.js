@@ -79,7 +79,12 @@ const contentSchema = new mongoose.Schema(
           default: Date.now
         }
       }
-    ]
+    ],
+      targetAudience: {
+      type: String,
+      enum: ['ug', 'pg', 'both'],
+      default: 'both',
+    },
   },
   { timestamps: true }
 );
