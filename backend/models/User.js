@@ -33,6 +33,11 @@ const userSchema = new mongoose.Schema(
       enum: ['hod', 'faculty', 'student'],
       required: true,
     },
+    department: {
+      type: String,
+      required: [true, 'Department is required'],
+      trim: true,
+    },
 
     // --- Student-specific fields ---
     rollNumber: { type: String, trim: true },
@@ -41,10 +46,40 @@ const userSchema = new mongoose.Schema(
     // --- Faculty / HOD-specific fields ---
     designation: { type: String, trim: true }, // e.g. "Assistant Professor"
 
+    // ✅ NEW: Track when user was promoted to HOD
+    hodPromotedAt: {
+      type: Date,
+      default: null,
+    },
+    // ✅ NEW: Track previous role before HOD promotion
+    previousRole: {
+      type: String,
+      enum: ['student', 'faculty'],
+      default: null,
+    },
+
     isActive: {
       type: Boolean,
       default: true,
     },
+
+    // Profile fields
+    profilePhoto: { type: String, default: '' },
+    bio: { type: String, default: '' },
+    researchInterests: [String],
+    qualifications: [String],
+    publications: [String],
+    officeLocation: String,
+    contactNumber: String,
+    linkedinUrl: String,
+    googleScholarUrl: String,
+    personalWebsite: String,
+    yearsOfExperience: { type: Number, default: 0 },
+    availableForMentorship: { type: Boolean, default: false },
+    mentorshipAreas: [String],
+    isAlumnus: { type: Boolean, default: false },
+    alumniBatchYear: Number,
+    lastLogin: Date,
   },
   { timestamps: true } // adds createdAt and updatedAt automatically
 );
@@ -56,7 +91,7 @@ userSchema.pre('save', async function (next) {
   // Only re-hash if the password field was actually changed
   if (!this.isModified('password')) return next();
 
-  const salt = await bcrypt.genSalt(10); // generates random "salt" for hashing
+  const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
@@ -66,6 +101,16 @@ userSchema.pre('save', async function (next) {
 // password stored in the database. Returns true/false.
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// ✅ NEW: Method to check if user is HOD
+userSchema.methods.isHOD = function () {
+  return this.role === 'hod';
+};
+
+// ✅ NEW: Method to check if user is Faculty (includes HOD)
+userSchema.methods.isFaculty = function () {
+  return this.role === 'faculty' || this.role === 'hod';
 };
 
 module.exports = mongoose.model('User', userSchema);

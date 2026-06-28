@@ -10,16 +10,16 @@ import api from '../api/axios';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
   // Restore session from localStorage on first load
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const savedUser = localStorage.getItem('user');
-        const token     = localStorage.getItem('token');
+        const token = localStorage.getItem('token');
 
         if (savedUser && token) {
           const parsedUser = JSON.parse(savedUser);
@@ -84,10 +84,18 @@ export function AuthProvider({ children }) {
 
       if (window.socket) {
         window.socket.emit('unregister');
-        // Don't disconnect; socket will reconnect on next login automatically
       }
     } catch (err) {
       console.error('Logout error:', err);
+    }
+  }, []);
+
+  const updateUser = useCallback((updatedData) => {
+    setUser(prev => ({ ...prev, ...updatedData }));
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...updatedData }));
     }
   }, []);
 
@@ -95,9 +103,13 @@ export function AuthProvider({ children }) {
     user,
     login,
     logout,
+    updateUser,
     loading,
     error,
     isAuthenticated: !!user,
+    isFaculty: user?.role === 'faculty' || user?.role === 'hod',
+    isHOD: user?.role === 'hod',
+    isStudent: user?.role === 'student',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
