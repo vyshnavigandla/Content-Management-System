@@ -1,6 +1,5 @@
 // pages/FacultyDirectory.jsx
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -9,14 +8,14 @@ import {
   EnvelopeIcon, 
   PhoneIcon, 
   AcademicCapIcon,
-  BriefcaseIcon,
   BookOpenIcon,
-  TrophyIcon,
-  GlobeAltIcon,
   LinkIcon,
   UserGroupIcon,
   StarIcon,
-  CalendarIcon
+  CalendarIcon,
+  XMarkIcon,
+  BriefcaseIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 
 export default function FacultyDirectory() {
@@ -36,9 +35,21 @@ export default function FacultyDirectory() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get('/users/faculty');
-      console.log('Faculty data:', res.data); // Debug log
-      setFaculty(res.data.data || []);
+      // ✅ CORRECT: Using the existing /profiles/directory endpoint
+      const res = await api.get('/profiles/directory');
+      console.log('Faculty data received:', res.data);
+      
+      // Handle different response structures
+      let facultyData = [];
+      if (res.data.success && res.data.data) {
+        facultyData = res.data.data;
+      } else if (res.data.data) {
+        facultyData = res.data.data;
+      } else if (Array.isArray(res.data)) {
+        facultyData = res.data;
+      }
+      
+      setFaculty(facultyData);
     } catch (err) {
       console.error('Error fetching faculty:', err);
       setError(err.response?.data?.message || 'Failed to load faculty directory');
@@ -56,8 +67,8 @@ export default function FacultyDirectory() {
       f.researchInterests?.some((interest) =>
         interest.toLowerCase().includes(searchLower)
       ) ||
-      f.specialization?.toLowerCase().includes(searchLower) ||
-      f.bio?.toLowerCase().includes(searchLower)
+      f.bio?.toLowerCase().includes(searchLower) ||
+      f.specialization?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -76,7 +87,7 @@ export default function FacultyDirectory() {
     if (profilePhoto.startsWith('http://') || profilePhoto.startsWith('https://')) {
       return profilePhoto;
     }
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
     return `${baseUrl}${profilePhoto}`;
   };
 
@@ -105,6 +116,12 @@ export default function FacultyDirectory() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
           <p className="text-sm text-red-700">{error}</p>
+          <button 
+            onClick={fetchFaculty}
+            className="mt-2 text-sm text-blue-600 hover:underline font-medium"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -163,7 +180,8 @@ export default function FacultyDirectory() {
                           onError={(e) => {
                             e.target.onerror = null;
                             e.target.style.display = 'none';
-                            e.target.parentElement.innerHTML = `
+                            const parent = e.target.parentElement;
+                            parent.innerHTML = `
                               <div class="w-full h-full flex items-center justify-center text-2xl font-bold text-blue-600">
                                 ${facultyMember.name?.[0]?.toUpperCase() || '?'}
                               </div>
@@ -240,20 +258,17 @@ export default function FacultyDirectory() {
         </div>
       )}
 
-      {/* Faculty Detail Modal - COMPLETE PROFILE */}
+      {/* Faculty Detail Modal */}
       {showModal && selectedFaculty && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
               <h2 className="text-xl font-bold text-gray-900">Complete Faculty Profile</h2>
               <button
                 onClick={closeModal}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <XMarkIcon className="w-6 h-6 text-gray-500" />
               </button>
             </div>
 
@@ -269,7 +284,8 @@ export default function FacultyDirectory() {
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = `
+                        const parent = e.target.parentElement;
+                        parent.innerHTML = `
                           <div class="w-full h-full flex items-center justify-center text-4xl font-bold text-blue-600">
                             ${selectedFaculty.name?.[0]?.toUpperCase() || '?'}
                           </div>
@@ -304,7 +320,7 @@ export default function FacultyDirectory() {
                 </div>
               </div>
 
-              {/* Contact & Links Grid */}
+              {/* Contact & Links */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {selectedFaculty.email && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
@@ -326,7 +342,7 @@ export default function FacultyDirectory() {
                 )}
                 {selectedFaculty.officeLocation && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <AcademicCapIcon className="h-5 w-5 text-gray-400" />
+                    <BriefcaseIcon className="h-5 w-5 text-gray-400" />
                     <div>
                       <p className="text-xs text-gray-500">Office</p>
                       <p className="text-sm text-gray-900">{selectedFaculty.officeLocation}</p>
@@ -357,21 +373,9 @@ export default function FacultyDirectory() {
                     </div>
                   </div>
                 )}
-                {selectedFaculty.personalWebsite && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <GlobeAltIcon className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Personal Website</p>
-                      <a href={selectedFaculty.personalWebsite} target="_blank" rel="noopener noreferrer" 
-                         className="text-sm text-blue-600 hover:underline truncate">
-                        Visit Website
-                      </a>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Full Biography */}
+              {/* Biography */}
               {selectedFaculty.bio && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -469,22 +473,8 @@ export default function FacultyDirectory() {
                 </div>
               )}
 
-              {/* Metadata Footer */}
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <div className="grid grid-cols-2 gap-4 text-xs text-gray-400">
-                  <div>
-                    <p className="font-medium">Profile Created</p>
-                    <p>{new Date(selectedFaculty.createdAt).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="font-medium">Last Updated</p>
-                    <p>{new Date(selectedFaculty.updatedAt).toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-
               {/* Close Button */}
-              <div className="mt-6">
+              <div className="mt-6 pt-4 border-t border-gray-100">
                 <button
                   onClick={closeModal}
                   className="w-full px-4 py-2 bg-gray-900 text-white rounded-xl hover:bg-gray-800 transition-colors"
