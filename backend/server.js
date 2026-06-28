@@ -16,6 +16,7 @@ dotenv.config();
 const connectDB              = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { startScheduler } = require('./utils/ContentScheduler');
+const facultyRoutes = require('./routes/facultyRoutes');
 
 // Connect to MongoDB, then kick off the scheduler
 connectDB().then(() => startScheduler());
@@ -110,6 +111,7 @@ app.use('/api/student-profiles', require('./routes/studentProfileRoutes'));
 app.use('/api/notifications',    require('./routes/notificationRoutes'));
 app.use('/api/comments',         require('./routes/commentRoutes'));  // registered ONCE
 app.use('/api/analytics',        require('./routes/analyticsRoutes'));
+app.use('/api/users/faculty', facultyRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
