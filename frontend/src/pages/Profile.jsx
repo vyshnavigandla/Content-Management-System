@@ -29,6 +29,7 @@ export default function Profile() {
     confirmNewPassword: '',
   });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   useEffect(() => {
     fetchProfile();
@@ -71,36 +72,21 @@ export default function Profile() {
       data.append('bio', form.bio);
       if (photoFile) data.append('photo', photoFile);
 
-      console.log('📤 Sending profile update:', {
-        name: form.name,
-        qualifications: form.qualifications,
-        researchInterests: form.researchInterests,
-        publications: form.publications,
-        bio: form.bio,
-        photoFile: photoFile?.name || 'No photo'
-      });
-
       const res = await api.put('/profiles/me', data, {
         headers: { 
           'Content-Type': 'multipart/form-data',
         },
       });
       
-      // ✅ Check if the response is successful
       if (res.status === 200 || res.status === 201) {
-        // If the response has data, update the profile
         if (res.data && res.data.success) {
           setProfile(res.data.data);
-          
-          // Update the auth context with new name
           if (res.data.data.user?.name) {
             updateUser({ name: res.data.data.user.name });
           }
-          
           setSuccess('✅ Profile updated successfully!');
           setTimeout(() => setSuccess(''), 3000);
         } else {
-          // If success is false but status is 200, show error message
           setError(res.data?.message || 'Failed to update profile');
         }
       } else {
@@ -108,11 +94,9 @@ export default function Profile() {
       }
     } catch (err) {
       console.error('❌ Profile update error:', err);
-      // ✅ Only show error if it's not a successful response
       if (err.response && err.response.status !== 200 && err.response.status !== 201) {
         setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
       } else {
-        // If it's a successful response but caught in error, treat it as success
         setSuccess('✅ Profile updated successfully!');
         setTimeout(() => setSuccess(''), 3000);
       }
@@ -121,10 +105,16 @@ export default function Profile() {
     }
   };
 
-  // Change Password Handler
+  // ✅ Change Password Handler with proper success message
   const handleChangePassword = async (e) => {
     e.preventDefault();
     
+    // Reset messages
+    setError('');
+    setPasswordSuccess('');
+    setSuccess('');
+
+    // Validation
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
       setError('Please fill in all password fields');
       return;
@@ -141,8 +131,6 @@ export default function Profile() {
     }
 
     setChangingPassword(true);
-    setError('');
-    setSuccess('');
 
     try {
       await api.put('/auth/password', {
@@ -150,16 +138,28 @@ export default function Profile() {
         newPassword: passwordForm.newPassword,
       });
       
-      setSuccess('✅ Password changed successfully!');
+      // ✅ Set success message
+      setPasswordSuccess('✅ Password changed successfully!');
+      
+      // Reset password form
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
         confirmNewPassword: '',
       });
-      setShowPasswordChange(false);
-      setTimeout(() => setSuccess(''), 3000);
+      
+      // Close password change form after 2 seconds
+      setTimeout(() => {
+        setShowPasswordChange(false);
+        // Keep success message visible for 3 seconds after closing
+        setTimeout(() => {
+          setPasswordSuccess('');
+        }, 3000);
+      }, 2000);
+      
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to change password');
+      console.error('❌ Password change error:', err);
+      setError(err.response?.data?.message || 'Failed to change password. Please try again.');
     } finally {
       setChangingPassword(false);
     }
@@ -189,7 +189,7 @@ export default function Profile() {
         <p className="text-gray-600">Manage your professional profile and portfolio</p>
       </div>
 
-      {/* Success Message */}
+      {/* Success Message - Profile Update */}
       {success && (
         <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg animate-fadeIn">
           <div className="flex items-center gap-2">
@@ -197,6 +197,18 @@ export default function Profile() {
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
             </svg>
             <p className="text-sm text-green-700">{success}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ✅ Password Change Success Message */}
+      {passwordSuccess && (
+        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <p className="text-sm text-green-700">{passwordSuccess}</p>
           </div>
         </div>
       )}
@@ -407,6 +419,7 @@ export default function Profile() {
               onClick={() => {
                 setShowPasswordChange(!showPasswordChange);
                 setError('');
+                setPasswordSuccess('');
                 setSuccess('');
               }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
