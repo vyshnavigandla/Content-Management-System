@@ -17,15 +17,18 @@ connectDB().then(() => startScheduler());
 const app = express();
 const server = http.createServer(app);
 
-// ✅ CORS - Allow all origins for testing (then restrict later)
+// ✅ ADD YOUR NEW VERCEL URL HERE
+// server.js - Updated CORS configuration
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://content-management-system-14njkovll-gandla-vyshnavi.vercel.app',
   'https://content-management-system-hh2r2a18p-gandla-vyshnavi.vercel.app',
   'https://content-management-system-topaz.vercel.app',
-  process.env.CLIENT_URL,
+  'https://content-management-system-3eilmwqie-gandla-vyshnavi.vercel.app',
+  process.env.CLIENT_URL, // ✅ This will read from environment
 ].filter(Boolean);
+console.log('✅ Allowed CORS origins:', allowedOrigins);
 
 // ✅ Socket.io CORS
 const io = socketIo(server, {
@@ -35,7 +38,7 @@ const io = socketIo(server, {
       if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
-        console.log('Blocked origin:', origin);
+        console.log('❌ Blocked origin:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -55,7 +58,27 @@ io.on('connection', (socket) => {
     socket.userId = queryUserId;
     console.log(`👤 User ${queryUserId} auto-joined their room`);
   }
-  // ... rest of socket handlers
+
+  socket.on('register', (userId) => {
+    if (userId) {
+      socket.join(userId);
+      socket.userId = userId;
+      console.log(`👤 User ${userId} joined their room`);
+      socket.emit('registered', { userId, status: 'success' });
+    }
+  });
+
+  socket.on('unregister', () => {
+    if (socket.userId) {
+      socket.leave(socket.userId);
+      console.log(`👤 User ${socket.userId} left their room`);
+      socket.userId = null;
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`🔴 Client disconnected: ${socket.id}${socket.userId ? ` (user ${socket.userId})` : ''}`);
+  });
 });
 
 // ✅ Express CORS
@@ -65,7 +88,7 @@ app.use(cors({
     if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      console.log('Blocked origin:', origin);
+      console.log('❌ Blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -105,6 +128,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`CORS allowed origins:`, allowedOrigins);
+  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  console.log(`📁 Allowed CORS origins:`, allowedOrigins);
 });
