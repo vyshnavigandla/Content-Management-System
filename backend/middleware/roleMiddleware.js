@@ -5,8 +5,6 @@
 // Usage example:
 //   router.put('/:id/approve', protect, authorize('hod'), approveContent);
 // -> only logged-in users with role === 'hod' can call this route.
-//
-// ✅ FIX: HOD is allowed to access faculty routes too
 
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
@@ -15,13 +13,7 @@ const authorize = (...allowedRoles) => {
       throw new Error('Not authorized, no user found on request');
     }
 
-    // ✅ Allow HOD to access faculty routes too
-    const hasRole = allowedRoles.some(role => {
-      if (role === 'faculty' && req.user.role === 'hod') return true;
-      return req.user.role === role;
-    });
-
-    if (!hasRole) {
+    if (!allowedRoles.includes(req.user.role)) {
       res.status(403);
       throw new Error(`Access denied. Role '${req.user.role}' cannot perform this action`);
     }

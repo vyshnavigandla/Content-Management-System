@@ -7,31 +7,32 @@ import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 
 const STATUS_COLORS = {
-  draft: 'from-gray-400 to-gray-500',
+  draft:            'from-gray-400 to-gray-500',
   pending_approval: 'from-yellow-400 to-orange-500',
-  published: 'from-green-400 to-emerald-500',
-  rejected: 'from-red-400 to-pink-500',
+  published:        'from-green-400 to-emerald-500',
+  rejected:         'from-red-400 to-pink-500',
 };
 
 const TYPE_COLORS = {
-  notice: 'from-blue-500 to-cyan-500',
-  circular: 'from-purple-500 to-violet-500',
-  event: 'from-pink-500 to-rose-500',
-  exam_schedule: 'from-orange-500 to-amber-500',
-  study_material: 'from-green-500 to-emerald-500',
+  notice:           'from-blue-500 to-cyan-500',
+  circular:         'from-purple-500 to-violet-500',
+  event:            'from-pink-500 to-rose-500',
+  exam_schedule:    'from-orange-500 to-amber-500',
+  study_material:   'from-green-500 to-emerald-500',
   placement_update: 'from-indigo-500 to-blue-500',
-  achievement: 'from-yellow-500 to-orange-500',
+  achievement:      'from-yellow-500 to-orange-500',
 };
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState(null);
+  const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
   const [showHODHistory, setShowHODHistory] = useState(false);
 
   useEffect(() => {
-    const endpoint = user.role === 'student' ? '/admin/dashboard/student' : '/admin/dashboard';
+    const endpoint =
+      user.role === 'student' ? '/admin/dashboard/student' : '/admin/dashboard';
     api.get(endpoint)
       .then((res) => setData(res.data.data))
       .catch((err) => setError(err.response?.data?.message || 'Failed to load dashboard'))
@@ -66,6 +67,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
+
       {/* Welcome Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-2">
@@ -123,6 +125,7 @@ export default function Dashboard() {
 
           {/* Current HOD + HOD History */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
             {/* Current HOD */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <div className="flex items-center gap-3 mb-5">
@@ -196,7 +199,9 @@ export default function Dashboard() {
                           {hod.designation || 'HOD'} · Joined {new Date(hod.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                         </p>
                       </div>
-                      <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${hod.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                        hod.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${hod.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                         {hod.isActive ? 'Current' : 'Past'}
                       </span>

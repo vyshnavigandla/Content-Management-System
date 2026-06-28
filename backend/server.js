@@ -22,18 +22,22 @@ const server = http.createServer(app);
 
 // ── Socket.io ───────────────────────────────────────────────────────────────
 
+// ✅ FIX: Allow all origins for production, or add your Vercel URL
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://content-management-system-hh2r2a18p-gandla-vyshnavi.vercel.app',
   'https://content-management-system-topaz.vercel.app',
   process.env.CLIENT_URL,
-].filter(Boolean);
+].filter(Boolean); // Remove undefined values
 
+// ✅ FIX: Socket.io CORS configuration
 const io = socketIo(server, {
   cors: {
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
+      
       if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
@@ -49,6 +53,7 @@ const io = socketIo(server, {
 
 global.io = io;
 
+// Single connection handler
 io.on('connection', (socket) => {
   console.log('🟢 New client connected:', socket.id);
 
@@ -83,9 +88,12 @@ io.on('connection', (socket) => {
 
 // ── Core middleware ─────────────────────────────────────────────────────────
 
+// ✅ FIX: CORS middleware for Express
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
+    
     if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {

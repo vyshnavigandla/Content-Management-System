@@ -9,12 +9,12 @@ const generateToken = require('../utils/generateToken');
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role, department, rollNumber, semester, designation } = req.body;
+  const { name, email, password, role, rollNumber, semester, designation } = req.body;
 
   // Basic validation
-  if (!name || !email || !password || !role || !department) {
+  if (!name || !email || !password || !role) {
     res.status(400);
-    throw new Error('Name, email, password, role, and department are required');
+    throw new Error('Name, email, password, and role are required');
   }
 
   if (!['hod', 'faculty', 'student'].includes(role)) {
@@ -29,13 +29,13 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('A user with this email already exists');
   }
 
-  // Create the user - password gets hashed automatically by the pre('save') hook
+  // Create the user - password gets hashed automatically by the
+  // pre('save') hook we defined in the User model
   const user = await User.create({
     name,
     email,
     password,
     role,
-    department,
     rollNumber: role === 'student' ? rollNumber : undefined,
     semester: role === 'student' ? semester : undefined,
     designation: role !== 'student' ? designation : undefined,
@@ -48,7 +48,6 @@ const registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      department: user.department,
       token: generateToken(user._id, user.role),
     },
   });
@@ -86,10 +85,6 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error('Invalid email or password');
   }
 
-  // Update last login
-  user.lastLogin = new Date();
-  await user.save();
-
   res.json({
     success: true,
     data: {
@@ -97,9 +92,6 @@ const loginUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      department: user.department,
-      designation: user.designation,
-      profilePhoto: user.profilePhoto,
       token: generateToken(user._id, user.role),
     },
   });
