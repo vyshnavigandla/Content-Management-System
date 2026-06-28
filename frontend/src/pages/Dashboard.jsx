@@ -28,7 +28,6 @@ export default function Dashboard() {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
-  const [showHODHistory, setShowHODHistory] = useState(false);
 
   useEffect(() => {
     const endpoint =
@@ -93,8 +92,8 @@ export default function Dashboard() {
       {/* Faculty / HOD dashboard */}
       {user.role !== 'student' && (
         <>
-          {/* Stats — 4 cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Stats — 3 cards (removed HODs All Time) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
             <StatCard
               label="Total Users"
               value={data.totalUsers}
@@ -102,18 +101,10 @@ export default function Dashboard() {
               icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
             />
             <StatCard
-              label="Faculty (incl. HODs)"
+              label="Faculty (incl. HOD)"
               value={data.totalFaculty}
               gradient="from-purple-500 to-pink-500"
-              subtitle={`${data.totalHODs} HOD${data.totalHODs !== 1 ? 's' : ''} in history`}
               icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
-            />
-            <StatCard
-              label="HODs (All Time)"
-              value={data.totalHODs}
-              gradient="from-rose-500 to-orange-500"
-              subtitle="Department leadership"
-              icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>}
             />
             <StatCard
               label="Students"
@@ -121,95 +112,6 @@ export default function Dashboard() {
               gradient="from-green-500 to-emerald-500"
               icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>}
             />
-          </div>
-
-          {/* Current HOD + HOD History */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-
-            {/* Current HOD */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                  </svg>
-                </div>
-                <h2 className="text-lg font-semibold text-gray-800">Current HOD</h2>
-                <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                  Active
-                </span>
-              </div>
-              {data.activeHOD ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">
-                    {data.activeHOD.name?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-gray-900">{data.activeHOD.name}</h3>
-                    <p className="text-sm text-gray-500">{data.activeHOD.designation || 'Head of Department'}</p>
-                    <p className="text-sm text-gray-400 mt-0.5">{data.activeHOD.email}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      In role since {new Date(data.activeHOD.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-400">
-                  <p className="text-sm">No active HOD found</p>
-                </div>
-              )}
-            </div>
-
-            {/* HOD History */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <h2 className="text-lg font-semibold text-gray-800">HOD History</h2>
-                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                    {data.allHODs?.length || 0} total
-                  </span>
-                </div>
-                {data.allHODs?.length > 3 && (
-                  <button
-                    onClick={() => setShowHODHistory(!showHODHistory)}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {showHODHistory ? 'Show less' : `View all ${data.allHODs.length}`}
-                  </button>
-                )}
-              </div>
-              {!data.allHODs?.length ? (
-                <p className="text-sm text-gray-400 text-center py-6">No HOD history found</p>
-              ) : (
-                <ul className="space-y-3">
-                  {(showHODHistory ? data.allHODs : data.allHODs.slice(0, 3)).map((hod) => (
-                    <li key={hod._id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                        {hod.name?.[0]?.toUpperCase() || '?'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 truncate">{hod.name}</p>
-                        <p className="text-xs text-gray-400">
-                          {hod.designation || 'HOD'} · Joined {new Date(hod.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                        </p>
-                      </div>
-                      <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                        hod.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${hod.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                        {hod.isActive ? 'Current' : 'Past'}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
 
           {/* Content Overview + Recent Activity */}
@@ -327,24 +229,6 @@ export default function Dashboard() {
       {/* Student dashboard */}
       {user.role === 'student' && (
         <>
-          {/* Current HOD banner for students */}
-          {data.activeHOD && (
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 mb-8 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white text-xl font-bold shadow-md flex-shrink-0">
-                {data.activeHOD.name?.[0]?.toUpperCase() || '?'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Current Head of Department</p>
-                <h3 className="text-base font-bold text-gray-900">{data.activeHOD.name}</h3>
-                <p className="text-sm text-gray-500">{data.activeHOD.designation || 'HOD'} · {data.activeHOD.email}</p>
-              </div>
-              <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                Active
-              </span>
-            </div>
-          )}
-
           {/* Type counts */}
           {Object.keys(data.typeCounts).length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
