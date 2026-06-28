@@ -35,98 +35,110 @@ const getMyProfile = asyncHandler(async (req, res) => {
 // @route   PUT /api/profiles/me
 // @access  Private (faculty, hod)
 const updateMyProfile = asyncHandler(async (req, res) => {
-  const {
-    name, // ✅ Added name field
-    qualifications,
-    researchInterests,
-    publications,
-    bio,
-  } = req.body;
+  try {
+    const {
+      name,
+      qualifications,
+      researchInterests,
+      publications,
+      bio,
+    } = req.body;
 
-  // ✅ Update User's name if provided
-  if (name) {
-    await User.findByIdAndUpdate(req.user._id, { name });
-  }
+    console.log('📝 Updating profile for user:', req.user._id);
+    console.log('📝 Received data:', { name, qualifications, researchInterests, publications, bio });
 
-  let profile = await FacultyProfile.findOne({
-    user: req.user._id,
-  });
-
-  if (!profile) {
-    profile = new FacultyProfile({
-      user: req.user._id,
-    });
-  }
-
-  // Convert comma-separated string → array
-  const toArray = (val) => {
-    if (Array.isArray(val)) return val;
-
-    if (typeof val === 'string') {
-      return val
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
+    // ✅ Update User's name if provided
+    if (name) {
+      await User.findByIdAndUpdate(req.user._id, { name });
+      console.log('✅ User name updated to:', name);
     }
 
-    return undefined;
-  };
+    let profile = await FacultyProfile.findOne({
+      user: req.user._id,
+    });
 
-  // Existing fields
-  if (qualifications !== undefined) {
-    profile.qualifications = toArray(qualifications) || [];
-  }
+    if (!profile) {
+      profile = new FacultyProfile({
+        user: req.user._id,
+      });
+      console.log('📝 New profile created for user');
+    }
 
-  if (researchInterests !== undefined) {
-    profile.researchInterests = toArray(researchInterests) || [];
-  }
+    // Convert comma-separated string → array
+    const toArray = (val) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string') {
+        return val
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+      return undefined;
+    };
 
-  if (publications !== undefined) {
-    profile.publications = toArray(publications) || [];
-  }
+    // Update fields
+    if (qualifications !== undefined) {
+      profile.qualifications = toArray(qualifications) || [];
+    }
 
-  if (bio !== undefined) {
-    profile.bio = bio;
-  }
+    if (researchInterests !== undefined) {
+      profile.researchInterests = toArray(researchInterests) || [];
+    }
 
-  // Phase 11 Additions
-  if (req.body.isAlumnus !== undefined) {
-    profile.isAlumnus =
-      req.body.isAlumnus === true ||
-      req.body.isAlumnus === 'true';
-  }
+    if (publications !== undefined) {
+      profile.publications = toArray(publications) || [];
+    }
 
-  if (
-    req.body.alumniBatchYear !== undefined &&
-    req.body.alumniBatchYear !== ''
-  ) {
-    profile.alumniBatchYear = Number(
-      req.body.alumniBatchYear
+    if (bio !== undefined) {
+      profile.bio = bio;
+    }
+
+    // Phase 11 Additions
+    if (req.body.isAlumnus !== undefined) {
+      profile.isAlumnus =
+        req.body.isAlumnus === true ||
+        req.body.isAlumnus === 'true';
+    }
+
+    if (
+      req.body.alumniBatchYear !== undefined &&
+      req.body.alumniBatchYear !== ''
+    ) {
+      profile.alumniBatchYear = Number(
+        req.body.alumniBatchYear
+      );
+    }
+
+    if (req.body.mentorshipAreas !== undefined) {
+      profile.mentorshipAreas =
+        toArray(req.body.mentorshipAreas) || [];
+    }
+
+    // Update photo if uploaded
+    if (req.file) {
+      profile.photo = `/uploads/${req.file.filename}`;
+      console.log('📸 Photo updated:', profile.photo);
+    }
+
+    await profile.save();
+    console.log('✅ Profile saved successfully');
+
+    await profile.populate(
+      'user',
+      'name email role designation'
     );
+
+    res.json({
+      success: true,
+      data: profile,
+    });
+  } catch (error) {
+    console.error('❌ Error updating profile:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update profile',
+    });
   }
-
-  if (req.body.mentorshipAreas !== undefined) {
-    profile.mentorshipAreas =
-      toArray(req.body.mentorshipAreas) || [];
-  }
-
-  // Update photo if uploaded
-  if (req.file) {
-    profile.photo = `/uploads/${req.file.filename}`;
-  }
-
-  await profile.save();
-
-  // ✅ Populate with updated user data
-  await profile.populate(
-    'user',
-    'name email role designation'
-  );
-
-  res.json({
-    success: true,
-    data: profile,
-  });
 });
 
 // @desc    Get faculty directory
@@ -181,7 +193,6 @@ const getFacultyDirectory = asyncHandler(async (req, res) => {
 
       bio: profile?.bio || '',
 
-      // Phase 11 fields
       isAlumnus:
         profile?.isAlumnus || false,
 

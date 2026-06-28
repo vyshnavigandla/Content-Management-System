@@ -1,6 +1,4 @@
 // pages/Profile.jsx
-// Faculty/HOD self-service profile editor with name, password change, and profile photo.
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
@@ -33,22 +31,28 @@ export default function Profile() {
   const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
-    api
-      .get('/profiles/me')
-      .then((res) => {
-        const p = res.data.data;
-        setProfile(p);
-        setForm({
-          name: p.user?.name || '',
-          qualifications: (p.qualifications || []).join(', '),
-          researchInterests: (p.researchInterests || []).join(', '),
-          publications: (p.publications || []).join(', '),
-          bio: p.bio || '',
-        });
-      })
-      .catch((err) => setError(err.response?.data?.message || 'Failed to load profile'))
-      .finally(() => setLoading(false));
+    fetchProfile();
   }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const res = await api.get('/profiles/me');
+      const p = res.data.data;
+      setProfile(p);
+      setForm({
+        name: p.user?.name || '',
+        qualifications: (p.qualifications || []).join(', '),
+        researchInterests: (p.researchInterests || []).join(', '),
+        publications: (p.publications || []).join(', '),
+        bio: p.bio || '',
+      });
+    } catch (err) {
+      console.error('Failed to fetch profile:', err);
+      setError(err.response?.data?.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -67,27 +71,43 @@ export default function Profile() {
       data.append('bio', form.bio);
       if (photoFile) data.append('photo', photoFile);
 
+      console.log('📤 Sending profile update:', {
+        name: form.name,
+        qualifications: form.qualifications,
+        researchInterests: form.researchInterests,
+        publications: form.publications,
+        bio: form.bio,
+        photoFile: photoFile?.name || 'No photo'
+      });
+
       const res = await api.put('/profiles/me', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+        },
       });
       
-      setProfile(res.data.data);
-      
-      // ✅ Update the auth context with new name
-      if (res.data.data.user?.name) {
-        updateUser({ name: res.data.data.user.name });
+      if (res.data.success) {
+        setProfile(res.data.data);
+        
+        // Update the auth context with new name
+        if (res.data.data.user?.name) {
+          updateUser({ name: res.data.data.user.name });
+        }
+        
+        setSuccess('✅ Profile updated successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(res.data.message || 'Failed to update profile');
       }
-      
-      setSuccess('Profile updated successfully.');
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      console.error('❌ Profile update error:', err);
+      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  // ✅ Change Password Handler
+  // Change Password Handler
   const handleChangePassword = async (e) => {
     e.preventDefault();
     
@@ -193,7 +213,6 @@ export default function Profile() {
                     alt="Profile" 
                     className="w-24 h-24 rounded-2xl object-cover shadow-lg ring-4 ring-white"
                   />
-                  <div className="absolute inset-0 rounded-2xl bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200"></div>
                 </div>
               ) : (
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
@@ -231,16 +250,9 @@ export default function Profile() {
             Edit Profile Information
           </h3>
 
-          {/* ✅ Name Field - Added */}
+          {/* Name Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Full Name
-              </span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
             <input
               type="text"
               name="name"
@@ -253,14 +265,7 @@ export default function Profile() {
 
           {/* Photo Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Profile Photo
-              </span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo</label>
             <div className="flex items-center gap-4">
               <label className="flex-1">
                 <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-400 transition-colors duration-200 cursor-pointer group">
@@ -284,8 +289,7 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setPhotoFile(null)}
-                  className="p-2 text-gray-400 hover:text-red-500 transition-colors duration-200"
-                  title="Remove file"
+                  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -365,20 +369,12 @@ export default function Profile() {
               Saving...
             </span>
           ) : (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              💾 Save Profile
-            </span>
+            '💾 Save Profile'
           )}
         </button>
       </form>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* 🔐 CHANGE PASSWORD SECTION */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-
+      {/* Change Password Section */}
       <div className="mt-8 border-t border-gray-200 pt-6">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
