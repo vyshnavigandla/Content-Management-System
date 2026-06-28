@@ -62,20 +62,24 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
   const plainTextBody = getPlainText(content.body);
   const shouldTruncate = plainTextBody.length > 300;
 
-  // ✅ NEW: Helper functions for attachments
+  // ✅ Helper functions for attachments
   const isImageFile = (fileName) => {
     if (!fileName) return false;
     const ext = fileName.split('.').pop()?.toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
   };
 
+  // ✅ FIX: Properly handle file URLs - remove leading slash to avoid double slashes
   const getFileUrl = (filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
       return filePath;
     }
+    // Remove leading slash if present
+    const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
     const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    return `${baseUrl}${filePath}`;
+    const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    return `${cleanBase}/${cleanPath}`;
   };
 
   // Get image attachments
@@ -186,7 +190,7 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
         </Link>
       )}
 
-      {/* ✅ NEW: Image Attachments Preview Grid */}
+      {/* Image Attachments Preview Grid */}
       {imageAttachments.length > 0 && (
         <div className="mb-3">
           <div className="grid grid-cols-3 gap-2">

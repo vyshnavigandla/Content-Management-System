@@ -45,10 +45,8 @@ export default function ContentDetail() {
       let res;
       
       if (isId) {
-        // If it's a MongoDB ID, fetch by ID
         res = await api.get(`/content/${param}`);
       } else {
-        // Otherwise, treat it as a slug
         res = await api.get(`/content/slug/${param}`);
       }
       
@@ -71,12 +69,12 @@ export default function ContentDetail() {
       if (idx === 0) {
         await api.put(`/content/${contentId}/download`);
       }
-      const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
-      window.open(`${base}${filePath}`, '_blank');
+      const fileUrl = getFileUrl(filePath);
+      window.open(fileUrl, '_blank');
     } catch (err) {
       console.error('Failed to track download:', err);
-      const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
-      window.open(`${base}${filePath}`, '_blank');
+      const fileUrl = getFileUrl(filePath);
+      window.open(fileUrl, '_blank');
     } finally {
       setDownloadingIdx(null);
     }
@@ -108,9 +106,22 @@ export default function ContentDetail() {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
   };
 
+  // ✅ FIX: Properly handle file URLs - remove leading slash to avoid double slashes
   const getFileUrl = (filePath) => {
+    if (!filePath) return '';
+    
+    // If it's already a full URL, return as is
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      return filePath;
+    }
+    
+    // Remove leading slash if present
+    const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+    
     const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
-    return `${base}${filePath}`;
+    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    
+    return `${cleanBase}/${cleanPath}`;
   };
 
   // SEO Meta Data
@@ -151,7 +162,6 @@ export default function ContentDetail() {
         <meta name="keywords" content={seoKeywords} />
         <link rel="canonical" href={`${window.location.origin}/content/${seoSlug || content._id}`} />
         
-        {/* Open Graph / Facebook */}
         <meta property="og:type" content="article" />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
@@ -163,7 +173,6 @@ export default function ContentDetail() {
         <meta property="article:published_time" content={content.publishedAt || content.createdAt} />
         <meta property="article:modified_time" content={content.updatedAt} />
         
-        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
@@ -171,7 +180,6 @@ export default function ContentDetail() {
           <meta name="twitter:image" content={featuredImageUrl} />
         )}
         
-        {/* Additional SEO */}
         {content.tags && content.tags.length > 0 && (
           <meta name="news_keywords" content={content.tags.join(', ')} />
         )}
