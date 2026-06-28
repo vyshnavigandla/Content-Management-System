@@ -62,6 +62,25 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
   const plainTextBody = getPlainText(content.body);
   const shouldTruncate = plainTextBody.length > 300;
 
+  // ✅ NEW: Helper functions for attachments
+  const isImageFile = (fileName) => {
+    if (!fileName) return false;
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+  };
+
+  const getFileUrl = (filePath) => {
+    if (!filePath) return null;
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      return filePath;
+    }
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    return `${baseUrl}${filePath}`;
+  };
+
+  // Get image attachments
+  const imageAttachments = content.attachments?.filter(f => isImageFile(f)) || [];
+
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1 group">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -167,6 +186,39 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
         </Link>
       )}
 
+      {/* ✅ NEW: Image Attachments Preview Grid */}
+      {imageAttachments.length > 0 && (
+        <div className="mb-3">
+          <div className="grid grid-cols-3 gap-2">
+            {imageAttachments.slice(0, 3).map((file, idx) => {
+              const fileUrl = getFileUrl(file);
+              return (
+                <div key={idx} className="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                  <img 
+                    src={fileUrl} 
+                    alt={`Attachment ${idx + 1}`}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = `
+                        <div class="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                          🖼️
+                        </div>
+                      `;
+                    }}
+                  />
+                </div>
+              );
+            })}
+            {imageAttachments.length > 3 && (
+              <div className="aspect-square rounded-lg bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-500">
+                +{imageAttachments.length - 3}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {content.type === 'study_material' && (
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {content.subject && (
@@ -208,6 +260,7 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
         })}</span>
       </div>
 
+      {/* Attachments count with icon */}
       {content.attachments?.length > 0 && (
         <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 rounded-lg">
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,6 +268,7 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
           </svg>
           <span className="text-xs text-gray-500">
             {content.attachments.length} attachment{content.attachments.length !== 1 ? 's' : ''}
+            {imageAttachments.length > 0 && ` (${imageAttachments.length} image${imageAttachments.length !== 1 ? 's' : ''})`}
           </span>
         </div>
       )}
