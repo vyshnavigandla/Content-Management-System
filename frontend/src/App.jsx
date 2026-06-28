@@ -5,13 +5,15 @@
 // Moved the new-content route outside the role-restricted group so it sits
 // above the /:id catch-all, then added the role restriction inline.
 // ✅ ADDED: Slug-based routing for SEO-friendly URLs
+// ✅ FIX: ContentDetail now handles both ID and slug detection
 
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import NotificationToast from './components/NotificationToast';
-import { HelmetProvider } from 'react-helmet-async';
 
 import Login          from './pages/Login';
 import Register       from './pages/Register';
@@ -32,44 +34,49 @@ export default function App() {
       <AuthProvider>
         <NotificationToast />
         <Routes>
-          {/* Public routes */}
+          {/* ── Public Routes ────────────────────────────────────────────── */}
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* All authenticated routes share the Layout (Navbar + main wrapper) */}
+          {/* ── Protected Routes ─────────────────────────────────────────── */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/dashboard"   element={<Dashboard />} />
-              <Route path="/directory"   element={<FacultyDirectory />} />
-              <Route path="/notifications" element={<Notifications />} />
+              {/* Main Pages */}
+              <Route path="/dashboard"      element={<Dashboard />} />
+              <Route path="/directory"      element={<FacultyDirectory />} />
+              <Route path="/notifications"  element={<Notifications />} />
 
-              {/* Content routes - ORDER MATTERS:
-                  /content/new and /content/pending must come before /content/:id
-                  so React Router doesn't treat "new"/"pending" as an :id value */}
+              {/* Content List */}
               <Route path="/content" element={<ContentList />} />
 
+              {/* ── Faculty/HOD Only Routes ──────────────────────────────── */}
               <Route element={<ProtectedRoute roles={['faculty', 'hod']} />}>
-                {/* FIXED: declared before /:id */}
+                {/* ⚠️ IMPORTANT: These routes MUST be declared before /:slug and /:id */}
                 <Route path="/content/new"      element={<ContentEditor />} />
                 <Route path="/content/:id/edit" element={<ContentEditor />} />
                 <Route path="/profile"          element={<Profile />} />
               </Route>
 
-              {/* ✅ SEO-Friendly: Slug-based routing for content */}
+              {/* ── Content Detail Routes ────────────────────────────────── */}
+              {/* ✅ SEO-Friendly: Slug-based routing (clean URLs) */}
               <Route path="/content/:slug" element={<ContentDetail />} />
               
-              {/* Fallback: Keep ID-based routing for backward compatibility */}
+              {/* ✅ Fallback: ID-based routing (backward compatibility) */}
               <Route path="/content/id/:id" element={<ContentDetail />} />
 
+              {/* ── HOD Only Routes ───────────────────────────────────────── */}
               <Route element={<ProtectedRoute roles={['hod']} />}>
                 <Route path="/approvals" element={<ApprovalQueue />} />
                 <Route path="/users"     element={<ManageUsers />} />
               </Route>
+
+              {/* ── 404 Fallback ───────────────────────────────────────────── */}
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Route>
 
-          <Route path="/"  element={<Navigate to="/dashboard" replace />} />
-          <Route path="*"  element={<NotFound />} />
+          {/* ── Redirects ─────────────────────────────────────────────────── */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </HelmetProvider>

@@ -22,7 +22,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function ContentDetail() {
-  const { id, slug } = useParams(); // Support both id and slug
+  const { id, slug } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [content, setContent] = useState(null);
@@ -30,25 +30,28 @@ export default function ContentDetail() {
   const [error, setError] = useState('');
   const [downloadingIdx, setDownloadingIdx] = useState(null);
 
-  // Determine if we're using slug or id
-  const isSlug = slug !== undefined;
-  const identifier = isSlug ? slug : id;
+  // Determine if the parameter is an ID (24 character hex string) or a slug
+  const isMongoId = (str) => /^[0-9a-fA-F]{24}$/.test(str);
+  const param = id || slug;
+  const isId = isMongoId(param);
 
   useEffect(() => {
     fetchContent();
-  }, [identifier, isSlug]);
+  }, [param, isId]);
 
   const fetchContent = async () => {
     try {
       setLoading(true);
       let res;
-      if (isSlug) {
-        // Fetch by slug (SEO-friendly URL)
-        res = await api.get(`/content/slug/${identifier}`);
+      
+      if (isId) {
+        // If it's a MongoDB ID, fetch by ID
+        res = await api.get(`/content/${param}`);
       } else {
-        // Fetch by ID (fallback)
-        res = await api.get(`/content/${identifier}`);
+        // Otherwise, treat it as a slug
+        res = await api.get(`/content/slug/${param}`);
       }
+      
       setContent(res.data.data);
       setError('');
     } catch (err) {
@@ -141,7 +144,7 @@ export default function ContentDetail() {
 
   return (
     <>
-      {/* ✅ SEO Meta Tags */}
+      {/* SEO Meta Tags */}
       <Helmet>
         <title>{seoTitle} | Department CMS</title>
         <meta name="description" content={seoDescription} />
