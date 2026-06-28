@@ -1,9 +1,4 @@
 // pages/ContentDetail.jsx
-// FIX: Content body now renders HTML properly using dangerouslySetInnerHTML
-// FIX: handleDownload previously only opened attachments[0], ignoring
-// any additional files. Now shows all attachments as individual download
-// links, each tracked separately.
-
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +15,9 @@ import {
   CalendarIcon,
   UserIcon,
   PaperClipIcon,
+  PhotoIcon,
+  DocumentIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
 export default function ContentDetail() {
@@ -49,11 +47,9 @@ export default function ContentDetail() {
     }
   };
 
-  // Track download for the specific file and open it.
   const handleDownload = async (filePath, idx) => {
     setDownloadingIdx(idx);
     try {
-      // Track the download on the backend (increments downloadCount once)
       if (idx === 0) {
         await api.put(`/content/${id}/download`);
       }
@@ -61,7 +57,6 @@ export default function ContentDetail() {
       window.open(`${base}${filePath}`, '_blank');
     } catch (err) {
       console.error('Failed to track download:', err);
-      // Still open the file even if tracking fails
       const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
       window.open(`${base}${filePath}`, '_blank');
     } finally {
@@ -73,12 +68,32 @@ export default function ContentDetail() {
     return filePath.split('/').pop() || filePath;
   };
 
-  // Helper function to get plain text for preview
-  const getPlainText = (html) => {
-    if (!html) return '';
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
+  const getFileIcon = (fileName) => {
+    const ext = fileName?.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
+      return <PhotoIcon className="h-5 w-5 text-green-500" />;
+    }
+    if (['pdf'].includes(ext)) {
+      return <DocumentIcon className="h-5 w-5 text-red-500" />;
+    }
+    if (['doc', 'docx'].includes(ext)) {
+      return <DocumentIcon className="h-5 w-5 text-blue-500" />;
+    }
+    if (['xls', 'xlsx'].includes(ext)) {
+      return <DocumentIcon className="h-5 w-5 text-green-600" />;
+    }
+    return <PaperClipIcon className="h-5 w-5 text-gray-400" />;
+  };
+
+  const isImageFile = (fileName) => {
+    const ext = fileName?.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
+  };
+
+  // Get full URL for preview
+  const getFileUrl = (filePath) => {
+    const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+    return `${base}${filePath}`;
   };
 
   if (loading) {
@@ -155,7 +170,6 @@ export default function ContentDetail() {
             </div>
           </div>
 
-          {/* Edit button */}
           {canEdit && (
             <Link
               to={`/content/${content._id}/edit`}
@@ -183,7 +197,7 @@ export default function ContentDetail() {
           </div>
         )}
 
-        {/* ⭐ FIX: Content Body - Renders HTML properly */}
+        {/* Content Body */}
         <div className="mt-6">
           {content.body ? (
             <div 
@@ -238,37 +252,66 @@ export default function ContentDetail() {
           </div>
         )}
 
-        {/* All attachments listed individually, each with its own download button */}
+        {/* FIX: All attachments with proper image preview */}
         {content.attachments && content.attachments.length > 0 && (
           <div className="mt-6 border-t border-gray-100 pt-4">
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <PaperClipIcon className="h-4 w-4" />
               Attachments ({content.attachments.length})
             </h3>
-            <div className="space-y-2">
-              {content.attachments.map((filePath, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <DocumentArrowDownIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 truncate">{getFileName(filePath)}</span>
-                  </div>
-                  <button
-                    onClick={() => handleDownload(filePath, idx)}
-                    disabled={downloadingIdx === idx}
-                    className="flex-shrink-0 ml-3 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors flex items-center gap-1"
+            <div className="space-y-3">
+              {content.attachments.map((filePath, idx) => {
+                const fileName = getFileName(filePath);
+                const fileUrl = getFileUrl(filePath);
+                const isImage = isImageFile(fileName);
+                
+                return (
+                  <div
+                    key={idx}
+                    className="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
                   >
-                    {downloadingIdx === idx ? (
-                      <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <DocumentArrowDownIcon className="h-3 w-3" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {getFileIcon(fileName)}
+                        <span className="text-sm text-gray-700 truncate">{fileName}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDownload(filePath, idx)}
+                        disabled={downloadingIdx === idx}
+                        className="flex-shrink-0 ml-3 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors flex items-center gap-1"
+                      >
+                        {downloadingIdx === idx ? (
+                          <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                        ) : (
+                          <ArrowDownTrayIcon className="h-3 w-3" />
+                        )}
+                        Download
+                      </button>
+                    </div>
+                    
+                    {/* FIX: Image preview for image files */}
+                    {isImage && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
+                        <img
+                          src={fileUrl}
+                          alt={fileName}
+                          className="w-full max-h-64 object-contain bg-white"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = `
+                              <div class="p-4 text-center text-gray-400 text-sm">
+                                <PhotoIcon class="h-8 w-8 mx-auto mb-1" />
+                                Failed to load image
+                              </div>
+                            `;
+                          }}
+                        />
+                      </div>
                     )}
-                    Download
-                  </button>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
