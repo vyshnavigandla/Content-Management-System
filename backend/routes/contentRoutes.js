@@ -10,7 +10,6 @@ const {
   getPublicContentBySlug,
   updateContent,
   deleteContent,
-  // deletePublishedContent,  // REMOVE THIS - not needed
   deleteAttachment,
   submitForApproval,
   getPendingApprovals,
@@ -21,6 +20,9 @@ const {
   trackDownload,
   scheduleContent,
   bulkDeleteArchived,
+  getComments,
+  addComment,
+  deleteComment,
 } = require('../controllers/contentController');
 
 const { protect } = require('../middleware/authMiddleware');
@@ -48,9 +50,6 @@ router.get('/slug/:slug', getContentBySlug);
 router.get('/public/:slug', getPublicContentBySlug);
 router.delete('/archived/bulk', authorize('hod'), bulkDeleteArchived);
 
-// ── REMOVE THIS LINE ──
-// router.delete('/:id/published', authorize('hod'), deletePublishedContent);
-
 // ── Workflow actions ────────────────────────────────────────────────────────
 
 router.put('/:id/submit', authorize('faculty', 'hod'), submitForApproval);
@@ -60,6 +59,12 @@ router.put('/:id/archive', authorize('hod'), archiveContent);
 router.put('/:id/download', trackDownload);
 router.put('/:id/schedule', authorize('hod'), scheduleContent);
 router.delete('/:id/attachments', authorize('faculty', 'hod'), deleteAttachment);
+
+// ── ✅ COMMENTS ROUTES ─────────────────────────────────────────────────────
+
+router.get('/:id/comments', protect, getComments);
+router.post('/:id/comments', protect, addComment);
+router.delete('/comments/:commentId', protect, deleteComment);
 
 // ── Generic CRUD (must be LAST) ────────────────────────────────────────────
 
@@ -71,6 +76,6 @@ router
     uploadContentFiles,
     updateContent
   )
-  .delete(authorize('faculty', 'hod'), deleteContent); // This handles all deletion cases
+  .delete(authorize('faculty', 'hod'), deleteContent);
 
 module.exports = router;

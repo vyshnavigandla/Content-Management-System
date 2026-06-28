@@ -65,7 +65,6 @@ export default function CommentSection({ contentId }) {
     }
   };
 
-  // Get submit button text based on type
   const getSubmitButtonText = () => {
     switch (commentType) {
       case 'question':
@@ -79,7 +78,6 @@ export default function CommentSection({ contentId }) {
     }
   };
 
-  // Get placeholder text based on type
   const getPlaceholderText = () => {
     switch (commentType) {
       case 'question':
@@ -128,11 +126,9 @@ export default function CommentSection({ contentId }) {
         </div>
       </div>
 
-      {/* Comment Form */}
       {user && (
         <form onSubmit={handleSubmit} className="mb-6">
           <div className="space-y-3">
-            {/* Type Selector */}
             <div className="flex gap-2">
               {COMMENT_TYPES.map((type) => {
                 const Icon = type.icon;
@@ -176,7 +172,6 @@ export default function CommentSection({ contentId }) {
         </form>
       )}
 
-      {/* Comments List */}
       <div className="space-y-4">
         {comments.length === 0 ? (
           <div className="text-center py-8">

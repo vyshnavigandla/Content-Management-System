@@ -30,7 +30,6 @@ const calculateReadingTime = (text) => {
   return Math.ceil(words / wordsPerMinute);
 };
 
-// FIX: upload.fields() stores files as req.files[fieldName], NOT a flat array
 const getAttachmentsFromReq = (req) => {
   if (!req.files) return [];
   if (!Array.isArray(req.files)) {
@@ -268,7 +267,6 @@ const updateContent = asyncHandler(async (req, res) => {
     excerpt, metaTitle, metaDescription, metaKeywords, slug,
   } = req.body;
 
-  // FIX: snapshot now includes excerpt and featuredImage to match schema
   content.previousVersions.push({
     title: content.title,
     body: content.body,
@@ -488,7 +486,6 @@ const getContentBySlug = asyncHandler(async (req, res) => {
   res.json({ success: true, data: content });
 });
 
-// FIX: was defined but missing from module.exports in original
 const getPublicContentBySlug = asyncHandler(async (req, res) => {
   const { slug } = req.params;
   const content = await Content.findOne({ 'seo.slug': slug, status: 'published' })
@@ -502,6 +499,106 @@ const getPublicContentBySlug = asyncHandler(async (req, res) => {
   await content.save();
 
   res.json({ success: true, data: content });
+});
+
+// ✅ COMMENT CONTROLLERS
+const getComments = asyncHandler(async (req, res) => {
+  const content = await Content.findById(req.params.id)
+    .populate({
+      path: 'comments.user',
+      select: 'name email role designation'
+    });
+
+  if (!content) {
+    res.status(404);
+    throw new Error('Content not found');
+  }
+
+  const comments = content.comments.sort((a, b) => b.createdAt - a.createdAt);
+
+  res.json({
+    success: true,
+    count: comments.length,
+    data: comments
+  });
+});
+
+const addComment = asyncHandler(async (req, res) => {
+  const { text, type } = req.body;
+
+  if (!text) {
+    res.status(400);
+    throw new Error('Comment text is required');
+  }
+
+  const content = await Content.findById(req.params.id);
+  if (!content) {
+    res.status(404);
+    throw new Error('Content not found');
+  }
+
+  if (content.status !== 'published') {
+    res.status(403);
+    throw new Error('Comments can only be added to published content');
+  }
+
+  const comment = {
+    user: req.user._id,
+    text: text.trim(),
+    type: type || 'comment',
+    createdAt: new Date()
+  };
+
+  content.comments.push(comment);
+  content.commentCount = content.comments.length;
+  await content.save();
+
+  await content.populate({
+    path: 'comments.user',
+    select: 'name email role designation'
+  });
+
+  const newComment = content.comments[content.comments.length - 1];
+
+  res.status(201).json({
+    success: true,
+    data: newComment
+  });
+});
+
+const deleteComment = asyncHandler(async (req, res) => {
+  const { commentId } = req.params;
+
+  const content = await Content.findOne({ 'comments._id': commentId });
+
+  if (!content) {
+    res.status(404);
+    throw new Error('Comment not found');
+  }
+
+  const comment = content.comments.id(commentId);
+  if (!comment) {
+    res.status(404);
+    throw new Error('Comment not found');
+  }
+
+  const isOwner = comment.user.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === 'admin';
+  const isHOD = req.user.role === 'hod';
+
+  if (!isOwner && !isAdmin && !isHOD) {
+    res.status(403);
+    throw new Error('Not authorized to delete this comment');
+  }
+
+  content.comments.pull(commentId);
+  content.commentCount = content.comments.length;
+  await content.save();
+
+  res.json({
+    success: true,
+    message: 'Comment deleted successfully'
+  });
 });
 
 module.exports = {
@@ -522,4 +619,7 @@ module.exports = {
   trackDownload,
   scheduleContent,
   bulkDeleteArchived,
+  getComments,
+  addComment,
+  deleteComment,
 };

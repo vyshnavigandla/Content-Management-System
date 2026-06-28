@@ -1,5 +1,4 @@
 // models/Content.js
-// FIX: previousVersions subdocument now includes excerpt and featuredImage
 const mongoose = require('mongoose');
 
 const contentSchema = new mongoose.Schema(
@@ -46,7 +45,6 @@ const contentSchema = new mongoose.Schema(
     featuredImage: { type: String, default: '' },
     readingTime: { type: Number, default: 0, min: 0 },
     version: { type: Number, default: 1 },
-    // FIX: added excerpt and featuredImage to match controller snapshot
     previousVersions: [
       {
         title: String,
@@ -58,6 +56,30 @@ const contentSchema = new mongoose.Schema(
         updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       },
     ],
+    // ✅ Comments field for discussion
+    comments: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true
+        },
+        text: {
+          type: String,
+          required: true,
+          trim: true
+        },
+        type: {
+          type: String,
+          enum: ['question', 'feedback', 'suggestion', 'comment'],
+          default: 'comment'
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ]
   },
   { timestamps: true }
 );
