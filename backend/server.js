@@ -111,7 +111,7 @@ app.use('/api/student-profiles', require('./routes/studentProfileRoutes'));
 app.use('/api/notifications',    require('./routes/notificationRoutes'));
 app.use('/api/comments',         require('./routes/commentRoutes'));  // registered ONCE
 app.use('/api/analytics',        require('./routes/analyticsRoutes'));
-app.use('/api/users/faculty', facultyRoutes);
+//app.use('/api/users/faculty', facultyRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
