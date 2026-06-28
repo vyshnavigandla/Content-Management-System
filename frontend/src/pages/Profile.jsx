@@ -1,14 +1,17 @@
 // pages/Profile.jsx
-// Faculty/HOD self-service profile editor.
+// Faculty/HOD self-service profile editor with name, password change, and profile photo.
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 
-const API_BASE = import.meta.env.VITE_API_URL.replace('/api', '');
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
 
 export default function Profile() {
+  const { user, updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({
+    name: '',
     qualifications: '',
     researchInterests: '',
     publications: '',
@@ -20,6 +23,15 @@ export default function Profile() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Password Change States
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmNewPassword: '',
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+
   useEffect(() => {
     api
       .get('/profiles/me')
@@ -27,6 +39,7 @@ export default function Profile() {
         const p = res.data.data;
         setProfile(p);
         setForm({
+          name: p.user?.name || '',
           qualifications: (p.qualifications || []).join(', '),
           researchInterests: (p.researchInterests || []).join(', '),
           publications: (p.publications || []).join(', '),
@@ -47,6 +60,7 @@ export default function Profile() {
 
     try {
       const data = new FormData();
+      data.append('name', form.name);
       data.append('qualifications', form.qualifications);
       data.append('researchInterests', form.researchInterests);
       data.append('publications', form.publications);
@@ -56,12 +70,64 @@ export default function Profile() {
       const res = await api.put('/profiles/me', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      
       setProfile(res.data.data);
+      
+      // ✅ Update the auth context with new name
+      if (res.data.data.user?.name) {
+        updateUser({ name: res.data.data.user.name });
+      }
+      
       setSuccess('Profile updated successfully.');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ✅ Change Password Handler
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      setError('Please fill in all password fields');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      setError('New password must be at least 6 characters');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    setChangingPassword(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await api.put('/auth/password', {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      
+      setSuccess('✅ Password changed successfully!');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmNewPassword: '',
+      });
+      setShowPasswordChange(false);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -91,7 +157,7 @@ export default function Profile() {
 
       {/* Success Message */}
       {success && (
-        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg animate-fadeIn">
+        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -103,7 +169,7 @@ export default function Profile() {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg animate-shake">
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -131,18 +197,25 @@ export default function Profile() {
                 </div>
               ) : (
                 <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-                  {profile?.user?.name?.[0]?.toUpperCase() || '?'}
+                  {form.name?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
             </div>
 
             {/* User Info */}
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900">{profile?.user?.name}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 uppercase">
-                  {profile?.user?.designation || profile?.user?.role}
+              <h2 className="text-xl font-bold text-gray-900">{form.name || profile?.user?.name}</h2>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                  profile?.user?.role === 'hod' ? 'bg-purple-100 text-purple-700' :
+                  profile?.user?.role === 'faculty' ? 'bg-blue-100 text-blue-700' :
+                  'bg-green-100 text-green-700'
+                }`}>
+                  {profile?.user?.role?.toUpperCase()}
                 </span>
+                {profile?.user?.designation && (
+                  <span className="text-sm text-gray-500">{profile?.user?.designation}</span>
+                )}
               </div>
               <p className="text-sm text-gray-500 mt-1">{profile?.user?.email}</p>
             </div>
@@ -157,6 +230,26 @@ export default function Profile() {
             </svg>
             Edit Profile Information
           </h3>
+
+          {/* ✅ Name Field - Added */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Full Name
+              </span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Your full name"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+            />
+          </div>
 
           {/* Photo Upload */}
           <div>
@@ -204,14 +297,7 @@ export default function Profile() {
 
           {/* Bio */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                </svg>
-                Bio
-              </span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
             <textarea
               name="bio"
               value={form.bio}
@@ -219,116 +305,171 @@ export default function Profile() {
               rows={4}
               maxLength={1000}
               placeholder="Write a brief professional bio..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white resize-none"
             />
-            <p className="text-xs text-gray-400 mt-1 text-right">{form.bio.length}/1000 characters</p>
+            <p className="text-xs text-gray-400 mt-1 text-right">{form.bio.length}/1000</p>
           </div>
 
           {/* Qualifications */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Qualifications
-              </span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Qualifications</label>
             <input
               name="qualifications"
               value={form.qualifications}
               onChange={handleChange}
               placeholder="Ph.D. in CSE, M.Tech, B.Tech"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white"
             />
-            <p className="text-xs text-gray-400 mt-1">Separate multiple qualifications with commas</p>
+            <p className="text-xs text-gray-400 mt-1">Separate with commas</p>
           </div>
 
           {/* Research Interests */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                Research Interests
-              </span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Research Interests</label>
             <input
               name="researchInterests"
               value={form.researchInterests}
               onChange={handleChange}
               placeholder="Machine Learning, IoT, Blockchain"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white"
             />
-            <p className="text-xs text-gray-400 mt-1">Separate multiple interests with commas</p>
+            <p className="text-xs text-gray-400 mt-1">Separate with commas</p>
           </div>
 
           {/* Publications */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-                Publications
-              </span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Publications</label>
             <input
               name="publications"
               value={form.publications}
               onChange={handleChange}
               placeholder="A Study on Neural Networks, 2022; IoT Security Framework, 2023"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white"
             />
-            <p className="text-xs text-gray-400 mt-1">Separate multiple publications with commas</p>
+            <p className="text-xs text-gray-400 mt-1">Separate with commas</p>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-4">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-3 text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] shadow-lg shadow-blue-500/25"
-          >
-            {saving ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving Changes...
-              </span>
-            ) : (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Save Profile
-              </span>
-            )}
-          </button>
-        </div>
+        {/* Save Button */}
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-3 text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 transition-all shadow-lg shadow-blue-500/25"
+        >
+          {saving ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              💾 Save Profile
+            </span>
+          )}
+        </button>
       </form>
 
-      <style jsx>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-shake {
-          animation: shake 0.3s ease-in-out;
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* 🔐 CHANGE PASSWORD SECTION */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+
+      <div className="mt-8 border-t border-gray-200 pt-6">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">Change Password</h3>
+                <p className="text-sm text-gray-500">Update your login password</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowPasswordChange(!showPasswordChange);
+                setError('');
+                setSuccess('');
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                showPasswordChange 
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300' 
+                  : 'bg-yellow-600 text-white hover:bg-yellow-700'
+              }`}
+            >
+              {showPasswordChange ? 'Cancel' : 'Change Password'}
+            </button>
+          </div>
+
+          {showPasswordChange && (
+            <form onSubmit={handleChangePassword} className="space-y-4 mt-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Current Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter your current password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
+                <input
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+                  required
+                  minLength={6}
+                />
+                <p className="text-xs text-gray-400 mt-1">Must be at least 6 characters</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm New Password</label>
+                <input
+                  type="password"
+                  placeholder="Re-enter new password"
+                  value={passwordForm.confirmNewPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmNewPassword: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
+                  required
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={changingPassword}
+                className="w-full bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl py-3 text-sm font-semibold hover:from-yellow-700 hover:to-orange-700 disabled:opacity-60 transition-all shadow-lg shadow-yellow-500/25"
+              >
+                {changingPassword ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Updating Password...
+                  </span>
+                ) : (
+                  'Update Password'
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

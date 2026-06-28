@@ -36,11 +36,17 @@ const getMyProfile = asyncHandler(async (req, res) => {
 // @access  Private (faculty, hod)
 const updateMyProfile = asyncHandler(async (req, res) => {
   const {
+    name, // ✅ Added name field
     qualifications,
     researchInterests,
     publications,
     bio,
   } = req.body;
+
+  // ✅ Update User's name if provided
+  if (name) {
+    await User.findByIdAndUpdate(req.user._id, { name });
+  }
 
   let profile = await FacultyProfile.findOne({
     user: req.user._id,
@@ -83,10 +89,7 @@ const updateMyProfile = asyncHandler(async (req, res) => {
     profile.bio = bio;
   }
 
-  // ==========================
   // Phase 11 Additions
-  // ==========================
-
   if (req.body.isAlumnus !== undefined) {
     profile.isAlumnus =
       req.body.isAlumnus === true ||
@@ -114,6 +117,7 @@ const updateMyProfile = asyncHandler(async (req, res) => {
 
   await profile.save();
 
+  // ✅ Populate with updated user data
   await profile.populate(
     'user',
     'name email role designation'

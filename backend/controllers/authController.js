@@ -1,5 +1,5 @@
 // controllers/authController.js
-// Handles registration, login, and fetching the logged-in user's profile.
+// Handles registration, login, fetching profile, and password change.
 
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
@@ -105,4 +105,51 @@ const getMe = asyncHandler(async (req, res) => {
   res.json({ success: true, data: req.user });
 });
 
-module.exports = { registerUser, loginUser, getMe };
+// @desc    Change password
+// @route   PUT /api/auth/password
+// @access  Private (any logged-in user)
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  // Validation
+  if (!currentPassword || !newPassword) {
+    res.status(400);
+    throw new Error('Current password and new password are required');
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400);
+    throw new Error('New password must be at least 6 characters');
+  }
+
+  // Get user with password field (select: false by default)
+  const user = await User.findById(req.user._id).select('+password');
+  
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Verify current password
+  const isMatch = await user.matchPassword(currentPassword);
+  if (!isMatch) {
+    res.status(401);
+    throw new Error('Current password is incorrect');
+  }
+
+  // Update password (pre('save') hook will hash it)
+  user.password = newPassword;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Password changed successfully'
+  });
+});
+
+module.exports = { 
+  registerUser, 
+  loginUser, 
+  getMe,
+  changePassword  // ← Added
+};
