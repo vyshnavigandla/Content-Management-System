@@ -2,8 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { protect, authorize } = require('../middleware/authMiddleware');
-
+const { protect } = require('../middleware/authMiddleware');
 // GET all faculty members
 router.get('/', protect, async (req, res) => {
   try {
@@ -66,7 +65,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // UPDATE faculty profile
-router.put('/:id', protect, authorize('faculty', 'hod'), async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
     const faculty = await User.findByIdAndUpdate(
       req.params.id,
