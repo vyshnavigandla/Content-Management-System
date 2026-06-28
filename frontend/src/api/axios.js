@@ -1,26 +1,30 @@
-// api/axios.js
-// A pre-configured Axios instance. Every API call in the app should
-// import THIS instead of axios directly, so the base URL and JWT
-// attachment logic only need to be written once.
-
+// frontend/src/api/axios.js
 import axios from 'axios';
 
+// ✅ Make sure this is the correct backend URL
+const API_URL = import.meta.env.VITE_API_URL || 'https://department-cms-backend.onrender.com/api';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true, // ✅ Add this for CORS
 });
 
-// Request interceptor: runs before every request is sent.
-// Reads the JWT from localStorage and attaches it as a Bearer token.
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// Response interceptor: if the server says the token is invalid/expired
-// (401), automatically log the user out and send them to /login.
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
