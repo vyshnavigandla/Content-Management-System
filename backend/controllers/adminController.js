@@ -99,29 +99,33 @@ const updateUserRole = asyncHandler(async (req, res) => {
     throw new Error('Invalid role');
   }
 
-  // If promoting to HOD, demote current HOD
+  // If promoting to HOD, demote all other active HODs
   if (role === 'hod') {
-    // Find current HOD in the same department
-    const currentHOD = await User.findOne({
+    // Find all active HODs except the target user
+    const activeHODs = await User.find({
       role: 'hod',
-      department: targetUser.department,
       isActive: true,
+      _id: { $ne: targetUser._id }
     });
 
-    if (currentHOD && currentHOD._id.toString() !== targetUser._id.toString()) {
-      // Demote current HOD back to faculty
-      currentHOD.role = 'faculty';
-      currentHOD.hodPromotedAt = null;
-      currentHOD.previousRole = null;
-      await currentHOD.save();
+    // Demote all other active HODs to faculty
+    for (const hod of activeHODs) {
+      hod.role = 'faculty';
+      hod.hodPromotedAt = null;
+      hod.previousRole = null;
+      await hod.save();
 
       await AuditLog.create({
         user: req.user._id,
         action: 'HOD_DEMOTED',
         targetType: 'user',
-        targetId: currentHOD._id,
-        remarks: `${currentHOD.email} demoted from HOD to Faculty`,
+        targetId: hod._id,
+        remarks: `${hod.email} demoted from HOD to Faculty`,
       });
+    }
+
+    if (activeHODs.length > 0) {
+      console.log(`📌 Demoted ${activeHODs.length} HOD(s) to Faculty`);
     }
 
     // Store previous role and promotion date
@@ -177,30 +181,33 @@ const updateUserStatus = asyncHandler(async (req, res) => {
     throw new Error('You cannot change the status of your own account');
   }
 
-  // ✅ If activating a HOD, check if another HOD is active
+  // ✅ If activating a HOD, demote all other active HODs
   if (user.role === 'hod' && isActive) {
-    const activeHOD = await User.findOne({
+    // Find all other active HODs
+    const activeHODs = await User.find({
       role: 'hod',
       isActive: true,
-      _id: { $ne: user._id } // Exclude the user being activated
+      _id: { $ne: user._id }
     });
 
-    if (activeHOD) {
-      // Demote current active HOD to faculty
-      activeHOD.role = 'faculty';
-      activeHOD.hodPromotedAt = null;
-      activeHOD.previousRole = null;
-      await activeHOD.save();
+    // Demote all other active HODs to faculty
+    for (const hod of activeHODs) {
+      hod.role = 'faculty';
+      hod.hodPromotedAt = null;
+      hod.previousRole = null;
+      await hod.save();
 
       await AuditLog.create({
         user: req.user._id,
         action: 'HOD_DEMOTED',
         targetType: 'user',
-        targetId: activeHOD._id,
-        remarks: `${activeHOD.email} demoted from HOD to Faculty for new HOD`,
+        targetId: hod._id,
+        remarks: `${hod.email} demoted from HOD to Faculty for new HOD`,
       });
+    }
 
-      console.log(`📌 Demoted ${activeHOD.email} from HOD to Faculty`);
+    if (activeHODs.length > 0) {
+      console.log(`📌 Demoted ${activeHODs.length} HOD(s) to Faculty`);
     }
   }
 

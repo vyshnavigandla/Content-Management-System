@@ -8,16 +8,16 @@ const {
   registerUser, 
   loginUser, 
   getMe,
-  changePassword  // ← Added
+  changePassword
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 // Public routes
-router.post('/register', registerUser);  // Public - anyone can register
-router.post('/login', loginUser);        // Public - anyone can log in
+router.post('/register', registerUser);
+router.post('/login', loginUser);
 
 // Protected routes (require valid JWT)
-router.get('/me', protect, getMe);              // Get own profile
-router.put('/password', protect, changePassword); // Change password
+router.get('/me', protect, getMe);
+router.put('/password', protect, changePassword);
 
 module.exports = router;

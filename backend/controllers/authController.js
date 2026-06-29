@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     rollNumber: role === 'student' ? rollNumber : undefined,
     semester: role === 'student' ? semester : undefined,
     designation: role !== 'student' ? designation : undefined,
-    isActive: isActive, // ✅ New HOD is INACTIVE if HOD exists
+    isActive: isActive,
     hodPromotedAt: role === 'hod' && isActive ? new Date() : null,
     previousRole: null,
   });
