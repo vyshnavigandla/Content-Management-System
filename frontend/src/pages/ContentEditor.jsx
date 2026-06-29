@@ -1,5 +1,4 @@
 // pages/ContentEditor.jsx
-// ADDED: Target Audience field (UG / PG / Both)
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
@@ -37,7 +36,7 @@ export default function ContentEditor() {
     title: '', 
     body: '', 
     type: 'notice',
-    targetAudience: 'both', // ✅ NEW: Default to 'both'
+    targetAudience: 'both',
     subject: '', 
     semester: '', 
     tags: '', 
@@ -49,6 +48,7 @@ export default function ContentEditor() {
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -60,7 +60,7 @@ export default function ContentEditor() {
           title: d.title, 
           body: d.body, 
           type: d.type,
-          targetAudience: d.targetAudience || 'both', // ✅ Load existing value
+          targetAudience: d.targetAudience || 'both',
           subject: d.subject || '', 
           semester: d.semester || '', 
           tags: (d.tags || []).join(', '), 
@@ -79,7 +79,6 @@ export default function ContentEditor() {
     setForm({ ...form, [name]: value });
   };
 
-  // Attachments Handler with Preview
   const handleAttachmentsChange = (e) => {
     const newFiles = Array.from(e.target.files);
     if (newFiles.length > 5) {
@@ -114,7 +113,7 @@ export default function ContentEditor() {
     data.append('title', form.title);
     data.append('body', form.body);
     data.append('type', form.type);
-    data.append('targetAudience', form.targetAudience); // ✅ NEW: Send target audience
+    data.append('targetAudience', form.targetAudience);
     if (form.tags) data.append('tags', form.tags);
     if (form.excerpt) data.append('excerpt', form.excerpt);
     if (form.type === 'study_material') {
@@ -122,7 +121,6 @@ export default function ContentEditor() {
       if (form.semester) data.append('semester', form.semester);
     }
     
-    // Attachments
     const newFiles = files.filter(f => typeof f !== 'string');
     newFiles.forEach((file) => data.append('attachments', file));
     
@@ -132,14 +130,24 @@ export default function ContentEditor() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setSaving(true);
+
     try {
       if (isEditMode) {
         await api.put(`/content/${id}`, buildFormData(), { headers: { 'Content-Type': 'multipart/form-data' } });
       } else {
         await api.post('/content', buildFormData(), { headers: { 'Content-Type': 'multipart/form-data' } });
       }
-      navigate('/content');
+      
+      // ✅ Show appropriate success message
+      if (form.type === 'study_material') {
+        setSuccess('✅ Study material published successfully!');
+        setTimeout(() => navigate('/content'), 1500);
+      } else {
+        setSuccess('✅ Content saved as draft!');
+        setTimeout(() => navigate('/content'), 1500);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save content');
     } finally {
@@ -147,9 +155,12 @@ export default function ContentEditor() {
     }
   };
 
+  // ✅ Only show submit for approval for non-study materials
   const handleSubmitForApproval = async () => {
     setError('');
+    setSuccess('');
     setSaving(true);
+
     try {
       let contentId = id;
       if (isEditMode) {
@@ -159,7 +170,8 @@ export default function ContentEditor() {
         contentId = res.data.data._id;
       }
       await api.put(`/content/${contentId}/submit`);
-      navigate('/content');
+      setSuccess('✅ Content submitted for approval!');
+      setTimeout(() => navigate('/content'), 1500);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit for approval');
     } finally {
@@ -175,9 +187,22 @@ export default function ContentEditor() {
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{isEditMode ? 'Edit Content' : 'Create New Content'}</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          {form.type === 'study_material' ? '📚 Study materials are auto-published immediately' : '📝 Other content requires HOD approval'}
+        </p>
       </div>
 
-      {error && <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg"><p className="text-sm text-red-700">{error}</p></div>}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg animate-fadeIn">
+          <p className="text-sm text-green-700">{success}</p>
+        </div>
+      )}
 
       {existing?.status === 'rejected' && existing.reviewRemarks && (
         <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-r-lg">
@@ -216,13 +241,17 @@ export default function ContentEditor() {
             >
               {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
+            {form.type === 'study_material' && (
+              <p className="text-xs text-green-600 mt-1.5">✅ Study materials are published immediately without approval</p>
+            )}
+            {form.type !== 'study_material' && (
+              <p className="text-xs text-yellow-600 mt-1.5">⏳ Other content requires HOD approval before publishing</p>
+            )}
           </div>
 
-          {/* ✅ NEW: Target Audience */}
+          {/* Target Audience */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Target Audience <span className="text-red-500">*</span>
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
             <div className="flex flex-wrap gap-3">
               {TARGET_AUDIENCE.map((option) => (
                 <label
@@ -313,7 +342,7 @@ export default function ContentEditor() {
             <p className="text-xs text-gray-400 mt-1">Separate tags with commas</p>
           </div>
 
-          {/* Attachments with Preview */}
+          {/* Attachments */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Attachments (max 5)</label>
             <div 
@@ -337,7 +366,6 @@ export default function ContentEditor() {
               />
             </div>
             
-            {/* Attachment Previews */}
             {(filePreviews.length > 0 || (files.length > 0 && files.some(f => typeof f === 'string'))) && (
               <div className="mt-3 space-y-2">
                 <p className="text-sm font-medium text-gray-700">Selected Files ({files.filter(f => typeof f !== 'string').length + (files.filter(f => typeof f === 'string').length)}/5)</p>
@@ -367,7 +395,6 @@ export default function ContentEditor() {
                     </button>
                   </div>
                 ))}
-                {/* Existing attachments from server */}
                 {files.filter(f => typeof f === 'string').map((file, index) => (
                   <div key={`existing-${index}`} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-3 min-w-0">
@@ -392,16 +419,30 @@ export default function ContentEditor() {
               disabled={saving}
               className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 disabled:opacity-60 transition-all"
             >
-              {saving ? 'Saving...' : '💾 Save as Draft'}
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </span>
+              ) : (
+                form.type === 'study_material' ? '📚 Publish Study Material' : '💾 Save as Draft'
+              )}
             </button>
-            <button 
-              type="button" 
-              onClick={handleSubmitForApproval} 
-              disabled={saving}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 transition-all shadow-lg"
-            >
-              {saving ? 'Submitting...' : '📤 Save & Submit for Approval'}
-            </button>
+
+            {/* ✅ Only show approval button for non-study materials */}
+            {form.type !== 'study_material' && (
+              <button 
+                type="button" 
+                onClick={handleSubmitForApproval} 
+                disabled={saving}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 transition-all shadow-lg"
+              >
+                {saving ? 'Submitting...' : '📤 Save & Submit for Approval'}
+              </button>
+            )}
           </div>
         </form>
       )}

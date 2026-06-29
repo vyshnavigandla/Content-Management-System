@@ -193,6 +193,9 @@ const trackDownload = asyncHandler(async (req, res) => {
   }
 });
 
+// controllers/contentController.js
+// ... (keep all imports and other functions)
+
 const createContent = asyncHandler(async (req, res) => {
   const {
     title, body, type, subject, semester, tags, category,
@@ -217,6 +220,12 @@ const createContent = asyncHandler(async (req, res) => {
     slug: finalSlug,
   };
 
+  // ✅ NEW: Auto-publish study materials, others go to draft
+  let status = 'draft';
+  if (type === 'study_material') {
+    status = 'published';
+  }
+
   const content = await Content.create({
     title, body, type,
     subject: type === 'study_material' ? subject : undefined,
@@ -228,13 +237,23 @@ const createContent = asyncHandler(async (req, res) => {
     excerpt: excerpt || '',
     seo: seoData,
     readingTime,
-    status: 'draft',
+    status: status, // ✅ Study materials auto-published
     createdBy: req.user._id,
   });
+
+  // ✅ If study material, log auto-publish
+  if (type === 'study_material') {
+    await logAction({
+      user: req.user._id, action: 'STUDY_MATERIAL_AUTO_PUBLISHED',
+      targetId: content._id,
+      remarks: `"${content.title}" study material auto-published`,
+    });
+  }
 
   res.status(201).json({ success: true, data: content });
 });
 
+// ... (rest of the file remains the same)
 const getMyContent = asyncHandler(async (req, res) => {
   const { status, type } = req.query;
   const filter = { createdBy: req.user._id };
