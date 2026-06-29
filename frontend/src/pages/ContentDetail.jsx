@@ -106,7 +106,7 @@ export default function ContentDetail() {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
   };
 
-  // ✅ FIX: Properly handle file URLs - remove leading slash to avoid double slashes
+  // ✅ FIX: Properly handle file URLs with or without leading slash
   const getFileUrl = (filePath) => {
     if (!filePath) return '';
     
@@ -116,7 +116,15 @@ export default function ContentDetail() {
     }
     
     // Remove leading slash if present
-    const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+    let cleanPath = filePath;
+    if (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
+    
+    // Ensure it starts with 'uploads/'
+    if (!cleanPath.startsWith('uploads/')) {
+      cleanPath = `uploads/${cleanPath}`;
+    }
     
     const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
     const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
@@ -155,13 +163,11 @@ export default function ContentDetail() {
 
   return (
     <>
-      {/* SEO Meta Tags */}
       <Helmet>
         <title>{seoTitle} | Department CMS</title>
         <meta name="description" content={seoDescription} />
         <meta name="keywords" content={seoKeywords} />
         <link rel="canonical" href={`${window.location.origin}/content/${seoSlug || content._id}`} />
-        
         <meta property="og:type" content="article" />
         <meta property="og:title" content={seoTitle} />
         <meta property="og:description" content={seoDescription} />
@@ -172,21 +178,18 @@ export default function ContentDetail() {
         <meta property="og:site_name" content="Department CMS" />
         <meta property="article:published_time" content={content.publishedAt || content.createdAt} />
         <meta property="article:modified_time" content={content.updatedAt} />
-        
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seoTitle} />
         <meta name="twitter:description" content={seoDescription} />
         {featuredImageUrl && (
           <meta name="twitter:image" content={featuredImageUrl} />
         )}
-        
         {content.tags && content.tags.length > 0 && (
           <meta name="news_keywords" content={content.tags.join(', ')} />
         )}
       </Helmet>
 
       <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
         <Link
           to="/content"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
@@ -195,7 +198,6 @@ export default function ContentDetail() {
           Back to Content
         </Link>
 
-        {/* Content Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -247,7 +249,6 @@ export default function ContentDetail() {
             )}
           </div>
 
-          {/* Study material metadata */}
           {content.type === 'study_material' && (content.subject || content.semester) && (
             <div className="mt-3 flex gap-2 flex-wrap">
               {content.subject && (
@@ -263,7 +264,6 @@ export default function ContentDetail() {
             </div>
           )}
 
-          {/* Content Body */}
           <div className="mt-6">
             {content.body ? (
               <div 
@@ -307,7 +307,6 @@ export default function ContentDetail() {
             )}
           </div>
 
-          {/* Tags */}
           {content.tags && content.tags.length > 0 && (
             <div className="mt-4 flex gap-2 flex-wrap">
               {content.tags.map((tag, i) => (
@@ -318,7 +317,6 @@ export default function ContentDetail() {
             </div>
           )}
 
-          {/* Attachments */}
           {content.attachments && content.attachments.length > 0 && (
             <div className="mt-6 border-t border-gray-100 pt-4">
               <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -381,7 +379,6 @@ export default function ContentDetail() {
             </div>
           )}
 
-          {/* Review Info */}
           {content.reviewedBy && (
             <div className={`mt-4 p-3 rounded-lg text-sm ${content.status === 'rejected' ? 'bg-red-50 border border-red-200' : 'bg-gray-50'}`}>
               <span className="font-medium text-gray-700">Reviewed by:</span>{' '}
@@ -397,7 +394,6 @@ export default function ContentDetail() {
             </div>
           )}
 
-          {/* Scheduled publish info */}
           {content.scheduledPublishAt && content.status !== 'published' && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800 flex items-center gap-2">
               <CalendarIcon className="h-4 w-4 flex-shrink-0" />
@@ -407,7 +403,6 @@ export default function ContentDetail() {
           )}
         </div>
 
-        {/* Comments Section - only for published content */}
         {content.status === 'published' && (
           <CommentSection contentId={content._id} />
         )}
