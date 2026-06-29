@@ -92,7 +92,7 @@ export default function Dashboard() {
       {/* Faculty / HOD dashboard */}
       {user.role !== 'student' && (
         <>
-          {/* Stats — 3 cards (removed HODs All Time) */}
+          {/* Stats — 3 cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
             <StatCard
               label="Total Users"
@@ -194,7 +194,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recently Published */}
+          {/* Recently Published - Updated to show study materials */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
@@ -204,7 +204,7 @@ export default function Dashboard() {
               </div>
               <h2 className="text-lg font-semibold text-gray-800">Recently Published</h2>
             </div>
-            {data.recentPublished.length === 0 ? (
+            {!data.recentPublished || data.recentPublished.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-8">Nothing published yet</p>
             ) : (
               <div className="space-y-2">
@@ -212,8 +212,17 @@ export default function Dashboard() {
                   <Link key={item._id} to={`/content/${item._id}`}
                     className="flex items-center justify-between p-3 rounded-xl hover:bg-blue-50 transition-colors group">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
-                      <span className="text-sm text-blue-600 group-hover:text-blue-700 font-medium truncate">{item.title}</span>
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        item.type === 'study_material' ? 'bg-green-500' : 'bg-blue-400'
+                      }`} />
+                      <span className="text-sm text-blue-600 group-hover:text-blue-700 font-medium truncate">
+                        {item.title}
+                      </span>
+                      {item.type === 'study_material' && (
+                        <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full flex-shrink-0">
+                          📚
+                        </span>
+                      )}
                     </div>
                     <span className="text-xs text-gray-400 flex-shrink-0 ml-4">
                       {new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -230,7 +239,7 @@ export default function Dashboard() {
       {user.role === 'student' && (
         <>
           {/* Type counts */}
-          {Object.keys(data.typeCounts).length > 0 && (
+          {data.typeCounts && Object.keys(data.typeCounts).length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
               {Object.entries(data.typeCounts).map(([type, count]) => (
                 <StatCard
@@ -254,7 +263,7 @@ export default function Dashboard() {
               </div>
               <h2 className="text-lg font-semibold text-gray-800">Recently Published Content</h2>
             </div>
-            {data.recentPublished.length === 0 ? (
+            {!data.recentPublished || data.recentPublished.length === 0 ? (
               <div className="text-center py-12">
                 <h3 className="text-lg font-medium text-gray-900 mb-1">No content yet</h3>
                 <p className="text-gray-500 text-sm">Published content will appear here</p>
@@ -265,7 +274,14 @@ export default function Dashboard() {
                   <Link key={item._id} to={`/content/${item._id}`}
                     className="flex items-center justify-between p-4 rounded-xl hover:bg-blue-50 transition-colors group border border-gray-100">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-blue-600 group-hover:text-blue-700 truncate">{item.title}</p>
+                      <p className="text-sm font-semibold text-blue-600 group-hover:text-blue-700 truncate">
+                        {item.title}
+                        {item.type === 'study_material' && (
+                          <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                            📚
+                          </span>
+                        )}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 capitalize">
                           {item.type.replace(/_/g, ' ')}

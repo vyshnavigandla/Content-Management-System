@@ -333,9 +333,10 @@ const getDashboardStats = asyncHandler(async (req, res) => {
 const getStudentDashboard = asyncHandler(async (req, res) => {
   const recentPublished = await Content.find({ status: 'published' })
     .sort({ publishedAt: -1 })
-    .limit(8)
-    .populate('createdBy', 'name role')
-    .select('title type subject semester publishedAt');
+    .limit(10)
+   
+    .select('title type publishedAt createBy')
+     .populate('createdBy', 'name')
 
   const counts = await Content.aggregate([
     { $match: { status: 'published' } },
