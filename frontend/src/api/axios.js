@@ -1,7 +1,6 @@
 // frontend/src/api/axios.js
 import axios from 'axios';
 
-// ✅ Make sure this is the correct backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'https://department-cms-backend.onrender.com/api';
 
 const api = axios.create({

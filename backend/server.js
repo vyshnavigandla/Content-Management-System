@@ -1,5 +1,6 @@
 // server.js
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
@@ -12,25 +13,38 @@ const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 const { startScheduler } = require('./utils/ContentScheduler');
 
+// Create uploads folder
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('✅ Uploads directory created at:', uploadDir);
+}
+
 connectDB().then(() => startScheduler());
 
 const app = express();
 const server = http.createServer(app);
 
-// ✅ ADD YOUR NEW VERCEL URL HERE
-// server.js - Updated CORS configuration
+// ✅ ADD ALL VERCEL URLS HERE
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
+  'http://localhost:5000',
+  
+  // All Vercel deployment URLs
   'https://content-management-system-14njkovll-gandla-vyshnavi.vercel.app',
   'https://content-management-system-hh2r2a18p-gandla-vyshnavi.vercel.app',
   'https://content-management-system-topaz.vercel.app',
   'https://content-management-system-3eilmwqie-gandla-vyshnavi.vercel.app',
-  process.env.CLIENT_URL, // ✅ This will read from environment
+  'https://content-management-system-o6z5insjy-gandla-vyshnavi.vercel.app', // ✅ ADD THIS
+  'https://content-management-system.vercel.app',
+  
+  process.env.CLIENT_URL,
 ].filter(Boolean);
+
 console.log('✅ Allowed CORS origins:', allowedOrigins);
 
-// ✅ Socket.io CORS
+// Socket.io
 const io = socketIo(server, {
   cors: {
     origin: function (origin, callback) {
@@ -46,6 +60,7 @@ const io = socketIo(server, {
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   },
+  transports: ['websocket', 'polling'], // ✅ Add both transports
 });
 
 global.io = io;
@@ -77,11 +92,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`🔴 Client disconnected: ${socket.id}${socket.userId ? ` (user ${socket.userId})` : ''}`);
+    console.log(`🔴 Client disconnected: ${socket.id}`);
   });
 });
 
-// ✅ Express CORS
+// Express CORS
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
@@ -120,7 +135,8 @@ app.use('/api/comments', require('./routes/commentRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadDir));
+console.log(`📁 Serving static files from: ${uploadDir}`);
 
 // Error handling
 app.use(notFound);
@@ -128,6 +144,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-  console.log(`📁 Allowed CORS origins:`, allowedOrigins);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📁 Uploads directory: ${uploadDir}`);
 });
