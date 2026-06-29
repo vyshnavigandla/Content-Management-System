@@ -75,7 +75,6 @@ const createUser = asyncHandler(async (req, res) => {
   });
 });
 
-// ✅ NEW: Update user role (Promote/Demote to/from HOD)
 // @desc    Update user role (Promote/Demote HOD)
 // @route   PUT /api/admin/users/:id/role
 // @access  Private (hod)
@@ -178,11 +177,46 @@ const updateUserStatus = asyncHandler(async (req, res) => {
     throw new Error('You cannot change the status of your own account');
   }
 
-  // If deactivating HOD, demote them first
+  // ✅ If activating a HOD, check if another HOD is active
+  if (user.role === 'hod' && isActive) {
+    const activeHOD = await User.findOne({
+      role: 'hod',
+      isActive: true,
+      _id: { $ne: user._id } // Exclude the user being activated
+    });
+
+    if (activeHOD) {
+      // Demote current active HOD to faculty
+      activeHOD.role = 'faculty';
+      activeHOD.hodPromotedAt = null;
+      activeHOD.previousRole = null;
+      await activeHOD.save();
+
+      await AuditLog.create({
+        user: req.user._id,
+        action: 'HOD_DEMOTED',
+        targetType: 'user',
+        targetId: activeHOD._id,
+        remarks: `${activeHOD.email} demoted from HOD to Faculty for new HOD`,
+      });
+
+      console.log(`📌 Demoted ${activeHOD.email} from HOD to Faculty`);
+    }
+  }
+
+  // ✅ If deactivating a HOD, demote them to faculty
   if (user.role === 'hod' && !isActive) {
     user.role = 'faculty';
     user.hodPromotedAt = null;
     user.previousRole = null;
+    
+    await AuditLog.create({
+      user: req.user._id,
+      action: 'HOD_DEMOTED',
+      targetType: 'user',
+      targetId: user._id,
+      remarks: `${user.email} deactivated and demoted from HOD to Faculty`,
+    });
   }
 
   user.isActive = isActive;
@@ -196,7 +230,11 @@ const updateUserStatus = asyncHandler(async (req, res) => {
     remarks: `${user.email} ${isActive ? 'activated' : 'deactivated'}`,
   });
 
-  res.json({ success: true, data: user });
+  res.json({ 
+    success: true, 
+    message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
+    data: user 
+  });
 });
 
 // @desc    Delete a user account
@@ -313,7 +351,7 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
 module.exports = {
   getUsers,
   createUser,
-  updateUserRole, // ✅ Added
+  updateUserRole,
   updateUserStatus,
   deleteUser,
   getDashboardStats,

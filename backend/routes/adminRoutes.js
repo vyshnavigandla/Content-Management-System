@@ -7,7 +7,7 @@ const router = express.Router();
 const {
   getUsers,
   createUser,
-  updateUserRole,        // ✅ Added
+  updateUserRole,
   updateUserStatus,
   deleteUser,
   getDashboardStats,
@@ -17,27 +17,32 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 
+// ──────────────────────────────────────────────────────────────
+//  All routes require authentication
+// ──────────────────────────────────────────────────────────────
 router.use(protect);
 
 // ──────────────────────────────────────────────────────────────
 //  Dashboards
 // ──────────────────────────────────────────────────────────────
 
+// Faculty/HOD dashboard
 router.get('/dashboard', authorize('faculty', 'hod'), getDashboardStats);
+
+// Student dashboard
 router.get('/dashboard/student', authorize('student'), getStudentDashboard);
 
 // ──────────────────────────────────────────────────────────────
-//  Faculty Directory (Public)
+//  Faculty Directory (Public - accessible to all authenticated users)
 // ──────────────────────────────────────────────────────────────
 
-// ✅ Get faculty members (including HODs)
-router.get('/faculty', protect, async (req, res) => {
+router.get('/faculty', async (req, res) => {
   try {
     const faculty = await User.find({ 
-      role: { $in: ['faculty', 'hod'] } 
+      role: { $in: ['faculty', 'hod'] },
+      isActive: true
     })
     .select('-password')
-    .populate('facultyProfile')
     .sort({ name: 1 });
 
     res.status(200).json({
@@ -58,19 +63,19 @@ router.get('/faculty', protect, async (req, res) => {
 //  User Management (HOD only)
 // ──────────────────────────────────────────────────────────────
 
-// Get all users with filters
+// Get all users with filters (role, search)
 router.get('/users', authorize('hod'), getUsers);
 
 // Create new user (faculty or student only)
 router.post('/users', authorize('hod'), createUser);
 
-// ✅ Update user role (Promote/Demote HOD)
+// Update user role (Promote/Demote to/from HOD)
 router.put('/users/:id/role', authorize('hod'), updateUserRole);
 
-// Activate or deactivate user
+// Activate or deactivate user account
 router.put('/users/:id/status', authorize('hod'), updateUserStatus);
 
-// Delete user
+// Delete user account
 router.delete('/users/:id', authorize('hod'), deleteUser);
 
 module.exports = router;

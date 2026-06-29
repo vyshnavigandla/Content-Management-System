@@ -29,8 +29,28 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('A user with this email already exists');
   }
 
-  // Create the user - password gets hashed automatically by the
-  // pre('save') hook we defined in the User model
+  // ✅ NEW: If registering as HOD, check if there's an active HOD
+  let isActive = true;
+  let statusMessage = '';
+
+  if (role === 'hod') {
+    const activeHOD = await User.findOne({ 
+      role: 'hod', 
+      isActive: true 
+    });
+
+    if (activeHOD) {
+      // If HOD exists, new HOD becomes INACTIVE by default
+      isActive = false;
+      statusMessage = `⚠️ Account created but INACTIVE. Current HOD (${activeHOD.name}) must deactivate their account first.`;
+    } else {
+      // No active HOD, new HOD becomes active
+      isActive = true;
+      statusMessage = '✅ Account created as ACTIVE HOD.';
+    }
+  }
+
+  // Create the user
   const user = await User.create({
     name,
     email,
@@ -39,15 +59,29 @@ const registerUser = asyncHandler(async (req, res) => {
     rollNumber: role === 'student' ? rollNumber : undefined,
     semester: role === 'student' ? semester : undefined,
     designation: role !== 'student' ? designation : undefined,
+    isActive: isActive, // ✅ New HOD is INACTIVE if HOD exists
+    hodPromotedAt: role === 'hod' && isActive ? new Date() : null,
+    previousRole: null,
   });
+
+  // Log registration
+  if (role === 'hod') {
+    console.log(`👑 New HOD registered: ${email} (${isActive ? 'ACTIVE' : 'INACTIVE'})`);
+    if (!isActive) {
+      const activeHOD = await User.findOne({ role: 'hod', isActive: true });
+      console.log(`📌 Note: Existing active HOD (${activeHOD?.name}) must deactivate first`);
+    }
+  }
 
   res.status(201).json({
     success: true,
+    message: statusMessage || 'Account created successfully',
     data: {
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
+      isActive: user.isActive,
       token: generateToken(user._id, user.role),
     },
   });
@@ -64,7 +98,6 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error('Please provide email and password');
   }
 
-  // .select('+password') is needed because the schema sets select:false on password
   const user = await User.findOne({ email }).select('+password');
 
   if (!user) {
@@ -72,12 +105,12 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error('Invalid email or password');
   }
 
+  // ✅ Check if account is active
   if (!user.isActive) {
     res.status(403);
-    throw new Error('This account has been deactivated. Contact the HOD.');
+    throw new Error('⚠️ Your account is INACTIVE. Please contact the HOD to activate your account.');
   }
 
-  // Compare entered password with the hashed password using our model method
   const isMatch = await user.matchPassword(password);
 
   if (!isMatch) {
@@ -92,6 +125,7 @@ const loginUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      isActive: user.isActive,
       token: generateToken(user._id, user.role),
     },
   });
@@ -101,7 +135,6 @@ const loginUser = asyncHandler(async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private (any logged-in user)
 const getMe = asyncHandler(async (req, res) => {
-  // req.user was set by the "protect" middleware
   res.json({ success: true, data: req.user });
 });
 
@@ -111,7 +144,6 @@ const getMe = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
-  // Validation
   if (!currentPassword || !newPassword) {
     res.status(400);
     throw new Error('Current password and new password are required');
@@ -122,7 +154,6 @@ const changePassword = asyncHandler(async (req, res) => {
     throw new Error('New password must be at least 6 characters');
   }
 
-  // Get user with password field (select: false by default)
   const user = await User.findById(req.user._id).select('+password');
   
   if (!user) {
@@ -130,14 +161,12 @@ const changePassword = asyncHandler(async (req, res) => {
     throw new Error('User not found');
   }
 
-  // Verify current password
   const isMatch = await user.matchPassword(currentPassword);
   if (!isMatch) {
     res.status(401);
     throw new Error('Current password is incorrect');
   }
 
-  // Update password (pre('save') hook will hash it)
   user.password = newPassword;
   await user.save();
 
@@ -151,5 +180,5 @@ module.exports = {
   registerUser, 
   loginUser, 
   getMe,
-  changePassword  // ← Added
+  changePassword
 };
