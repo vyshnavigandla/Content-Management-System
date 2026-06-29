@@ -165,14 +165,32 @@ const getPublishedContent = asyncHandler(async (req, res) => {
 });
 
 const trackDownload = asyncHandler(async (req, res) => {
-  const content = await Content.findById(req.params.id);
-  if (!content) { res.status(404); throw new Error('Content not found'); }
-  if (content.status !== 'published') {
-    res.status(403); throw new Error('Cannot download unpublished content');
+  try {
+    const content = await Content.findById(req.params.id);
+    if (!content) {
+      res.status(404);
+      throw new Error('Content not found');
+    }
+    
+    if (content.status !== 'published') {
+      res.status(403);
+      throw new Error('Cannot download unpublished content');
+    }
+    
+    content.downloadCount += 1;
+    await content.save();
+    
+    res.json({ 
+      success: true, 
+      downloadCount: content.downloadCount 
+    });
+  } catch (error) {
+    console.error('Error tracking download:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to track download'
+    });
   }
-  content.downloadCount += 1;
-  await content.save();
-  res.json({ success: true, downloadCount: content.downloadCount });
 });
 
 const createContent = asyncHandler(async (req, res) => {
@@ -228,28 +246,41 @@ const getMyContent = asyncHandler(async (req, res) => {
 });
 
 const getContentById = asyncHandler(async (req, res) => {
-  const content = await Content.findById(req.params.id)
-    .populate('createdBy', 'name role designation')
-    .populate('reviewedBy', 'name role');
+  try {
+    const content = await Content.findById(req.params.id)
+      .populate('createdBy', 'name role designation')
+      .populate('reviewedBy', 'name role');
 
-  if (!content) { res.status(404); throw new Error('Content not found'); }
+    if (!content) {
+      res.status(404);
+      throw new Error('Content not found');
+    }
 
-  if (req.user.role === 'student' && content.status !== 'published') {
-    res.status(403); throw new Error('This content is not published yet');
+    if (req.user.role === 'student' && content.status !== 'published') {
+      res.status(403);
+      throw new Error('This content is not published yet');
+    }
+
+    const isOwner = content.createdBy?._id?.toString() === req.user._id.toString();
+    if (req.user.role === 'faculty' && content.status !== 'published' && !isOwner) {
+      res.status(403);
+      throw new Error('You can only view your own unpublished content');
+    }
+
+    if (content.status === 'published') {
+      content.viewCount += 1;
+      content.lastViewedAt = new Date();
+      await content.save();
+    }
+
+    res.json({ success: true, data: content });
+  } catch (error) {
+    console.error('Error fetching content:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch content'
+    });
   }
-
-  const isOwner = content.createdBy._id.toString() === req.user._id.toString();
-  if (req.user.role === 'faculty' && content.status !== 'published' && !isOwner) {
-    res.status(403); throw new Error('You can only view your own unpublished content');
-  }
-
-  if (content.status === 'published') {
-    content.viewCount += 1;
-    content.lastViewedAt = new Date();
-    await content.save();
-  }
-
-  res.json({ success: true, data: content });
 });
 
 const updateContent = asyncHandler(async (req, res) => {
@@ -461,144 +492,192 @@ const bulkDeleteArchived = asyncHandler(async (req, res) => {
 });
 
 const getContentBySlug = asyncHandler(async (req, res) => {
-  const { slug } = req.params;
-  const content = await Content.findOne({ 'seo.slug': slug })
-    .populate('createdBy', 'name role designation')
-    .populate('reviewedBy', 'name role');
+  try {
+    const { slug } = req.params;
+    const content = await Content.findOne({ 'seo.slug': slug })
+      .populate('createdBy', 'name role designation')
+      .populate('reviewedBy', 'name role');
 
-  if (!content) { res.status(404); throw new Error('Content not found'); }
+    if (!content) {
+      res.status(404);
+      throw new Error('Content not found');
+    }
 
-  if (req.user.role === 'student' && content.status !== 'published') {
-    res.status(403); throw new Error('This content is not published yet');
+    if (req.user.role === 'student' && content.status !== 'published') {
+      res.status(403);
+      throw new Error('This content is not published yet');
+    }
+
+    const isOwner = content.createdBy?._id?.toString() === req.user._id.toString();
+    if (req.user.role === 'faculty' && content.status !== 'published' && !isOwner) {
+      res.status(403);
+      throw new Error('You can only view your own unpublished content');
+    }
+
+    if (content.status === 'published') {
+      content.viewCount += 1;
+      content.lastViewedAt = new Date();
+      await content.save();
+    }
+
+    res.json({ success: true, data: content });
+  } catch (error) {
+    console.error('Error fetching content by slug:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch content'
+    });
   }
-
-  const isOwner = content.createdBy._id.toString() === req.user._id.toString();
-  if (req.user.role === 'faculty' && content.status !== 'published' && !isOwner) {
-    res.status(403); throw new Error('You can only view your own unpublished content');
-  }
-
-  if (content.status === 'published') {
-    content.viewCount += 1;
-    content.lastViewedAt = new Date();
-    await content.save();
-  }
-
-  res.json({ success: true, data: content });
 });
 
 const getPublicContentBySlug = asyncHandler(async (req, res) => {
-  const { slug } = req.params;
-  const content = await Content.findOne({ 'seo.slug': slug, status: 'published' })
-    .populate('createdBy', 'name role designation')
-    .populate('reviewedBy', 'name role');
+  try {
+    const { slug } = req.params;
+    const content = await Content.findOne({ 'seo.slug': slug, status: 'published' })
+      .populate('createdBy', 'name role designation')
+      .populate('reviewedBy', 'name role');
 
-  if (!content) { res.status(404); throw new Error('Content not found'); }
+    if (!content) {
+      res.status(404);
+      throw new Error('Content not found');
+    }
 
-  content.viewCount += 1;
-  content.lastViewedAt = new Date();
-  await content.save();
+    content.viewCount += 1;
+    content.lastViewedAt = new Date();
+    await content.save();
 
-  res.json({ success: true, data: content });
+    res.json({ success: true, data: content });
+  } catch (error) {
+    console.error('Error fetching public content:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch content'
+    });
+  }
 });
 
-// ✅ COMMENT CONTROLLERS
+// COMMENT CONTROLLERS
 const getComments = asyncHandler(async (req, res) => {
-  const content = await Content.findById(req.params.id)
-    .populate({
+  try {
+    const content = await Content.findById(req.params.id)
+      .populate({
+        path: 'comments.user',
+        select: 'name email role designation'
+      });
+
+    if (!content) {
+      res.status(404);
+      throw new Error('Content not found');
+    }
+
+    const comments = content.comments.sort((a, b) => b.createdAt - a.createdAt);
+
+    res.json({
+      success: true,
+      count: comments.length,
+      data: comments
+    });
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch comments'
+    });
+  }
+});
+
+const addComment = asyncHandler(async (req, res) => {
+  try {
+    const { text, type } = req.body;
+
+    if (!text) {
+      res.status(400);
+      throw new Error('Comment text is required');
+    }
+
+    const content = await Content.findById(req.params.id);
+    if (!content) {
+      res.status(404);
+      throw new Error('Content not found');
+    }
+
+    if (content.status !== 'published') {
+      res.status(403);
+      throw new Error('Comments can only be added to published content');
+    }
+
+    const comment = {
+      user: req.user._id,
+      text: text.trim(),
+      type: type || 'comment',
+      createdAt: new Date()
+    };
+
+    content.comments.push(comment);
+    content.commentCount = content.comments.length;
+    await content.save();
+
+    await content.populate({
       path: 'comments.user',
       select: 'name email role designation'
     });
 
-  if (!content) {
-    res.status(404);
-    throw new Error('Content not found');
+    const newComment = content.comments[content.comments.length - 1];
+
+    res.status(201).json({
+      success: true,
+      data: newComment
+    });
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to add comment'
+    });
   }
-
-  const comments = content.comments.sort((a, b) => b.createdAt - a.createdAt);
-
-  res.json({
-    success: true,
-    count: comments.length,
-    data: comments
-  });
-});
-
-const addComment = asyncHandler(async (req, res) => {
-  const { text, type } = req.body;
-
-  if (!text) {
-    res.status(400);
-    throw new Error('Comment text is required');
-  }
-
-  const content = await Content.findById(req.params.id);
-  if (!content) {
-    res.status(404);
-    throw new Error('Content not found');
-  }
-
-  if (content.status !== 'published') {
-    res.status(403);
-    throw new Error('Comments can only be added to published content');
-  }
-
-  const comment = {
-    user: req.user._id,
-    text: text.trim(),
-    type: type || 'comment',
-    createdAt: new Date()
-  };
-
-  content.comments.push(comment);
-  content.commentCount = content.comments.length;
-  await content.save();
-
-  await content.populate({
-    path: 'comments.user',
-    select: 'name email role designation'
-  });
-
-  const newComment = content.comments[content.comments.length - 1];
-
-  res.status(201).json({
-    success: true,
-    data: newComment
-  });
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
-  const { commentId } = req.params;
+  try {
+    const { commentId } = req.params;
 
-  const content = await Content.findOne({ 'comments._id': commentId });
+    const content = await Content.findOne({ 'comments._id': commentId });
 
-  if (!content) {
-    res.status(404);
-    throw new Error('Comment not found');
+    if (!content) {
+      res.status(404);
+      throw new Error('Comment not found');
+    }
+
+    const comment = content.comments.id(commentId);
+    if (!comment) {
+      res.status(404);
+      throw new Error('Comment not found');
+    }
+
+    const isOwner = comment.user.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === 'admin';
+    const isHOD = req.user.role === 'hod';
+
+    if (!isOwner && !isAdmin && !isHOD) {
+      res.status(403);
+      throw new Error('Not authorized to delete this comment');
+    }
+
+    content.comments.pull(commentId);
+    content.commentCount = content.comments.length;
+    await content.save();
+
+    res.json({
+      success: true,
+      message: 'Comment deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting comment:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete comment'
+    });
   }
-
-  const comment = content.comments.id(commentId);
-  if (!comment) {
-    res.status(404);
-    throw new Error('Comment not found');
-  }
-
-  const isOwner = comment.user.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === 'admin';
-  const isHOD = req.user.role === 'hod';
-
-  if (!isOwner && !isAdmin && !isHOD) {
-    res.status(403);
-    throw new Error('Not authorized to delete this comment');
-  }
-
-  content.comments.pull(commentId);
-  content.commentCount = content.comments.length;
-  await content.save();
-
-  res.json({
-    success: true,
-    message: 'Comment deleted successfully'
-  });
 });
 
 module.exports = {

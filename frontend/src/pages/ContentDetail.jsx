@@ -30,7 +30,6 @@ export default function ContentDetail() {
   const [error, setError] = useState('');
   const [downloadingIdx, setDownloadingIdx] = useState(null);
 
-  // Determine if the parameter is an ID (24 character hex string) or a slug
   const isMongoId = (str) => /^[0-9a-fA-F]{24}$/.test(str);
   const param = id || slug;
   const isId = isMongoId(param);
@@ -50,11 +49,21 @@ export default function ContentDetail() {
         res = await api.get(`/content/slug/${param}`);
       }
       
-      setContent(res.data.data);
-      setError('');
+      if (res.data && res.data.success) {
+        setContent(res.data.data);
+        setError('');
+      } else {
+        setError('Failed to load content');
+      }
     } catch (err) {
       console.error('Failed to fetch content:', err);
-      setError(err.response?.data?.message || 'Failed to load content');
+      if (err.response?.status === 500) {
+        setError('Server error. Please try again later.');
+      } else if (err.response?.status === 404) {
+        setError('Content not found');
+      } else {
+        setError(err.response?.data?.message || 'Failed to load content');
+      }
     } finally {
       setLoading(false);
     }
@@ -106,22 +115,18 @@ export default function ContentDetail() {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
   };
 
-  // ✅ FIX: Properly handle file URLs with or without leading slash
   const getFileUrl = (filePath) => {
     if (!filePath) return '';
     
-    // If it's already a full URL, return as is
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
       return filePath;
     }
     
-    // Remove leading slash if present
     let cleanPath = filePath;
     if (cleanPath.startsWith('/')) {
       cleanPath = cleanPath.substring(1);
     }
     
-    // Ensure it starts with 'uploads/'
     if (!cleanPath.startsWith('uploads/')) {
       cleanPath = `uploads/${cleanPath}`;
     }
@@ -132,7 +137,6 @@ export default function ContentDetail() {
     return `${cleanBase}/${cleanPath}`;
   };
 
-  // SEO Meta Data
   const seoTitle = content?.seo?.metaTitle || content?.title || 'Content';
   const seoDescription = content?.seo?.metaDescription || content?.excerpt || `${seoTitle} - Department CMS`;
   const seoKeywords = content?.seo?.metaKeywords?.join(', ') || '';
