@@ -2,6 +2,7 @@
 // FIX: removed duplicate useEffect that caused double fetch on mount;
 // added onDelete prop to ContentCard so deleted items disappear immediately.
 // FIX: HOD can now delete any content regardless of status or owner
+// FIX: Added Auto-Published badge for study materials
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
@@ -66,12 +67,10 @@ export default function ContentList() {
     }
   }, [isStaff, type, statusFilter, semester, search]);
 
-  // FIX: single useEffect — runs on mount + when dropdown filters change
   useEffect(() => {
     fetchItems();
   }, [type, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Separate effect for initial load with default search/semester = ''
   useEffect(() => {
     fetchItems();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -79,12 +78,24 @@ export default function ContentList() {
   const handleSearchSubmit = (e) => { e.preventDefault(); fetchItems(); };
   const handleDelete = (deletedId) => setItems((prev) => prev.filter((item) => item._id !== deletedId));
 
+  // ✅ Helper to check if content is auto-published (study materials)
+  const isAutoPublished = (item) => {
+    return item.type === 'study_material' && item.status === 'published';
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-1">{isStaff ? 'My Content' : 'Department Content'}</h1>
-          <p className="text-gray-600">{isStaff ? 'Manage and track your published content' : 'Browse department publications and updates'}</p>
+          <p className="text-gray-600">
+            {isStaff ? 'Manage and track your published content' : 'Browse department publications and updates'}
+            {isStaff && (
+              <span className="block text-sm text-green-600 mt-1">
+                📚 Study materials are auto-published immediately
+              </span>
+            )}
+          </p>
         </div>
         {isStaff && (
           <Link to="/content/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg">
@@ -162,12 +173,9 @@ export default function ContentList() {
                 key={item._id}
                 content={item}
                 onDelete={handleDelete}
-                // HOD can delete ANY content, faculty can only edit their own drafts/rejected
+               isAutoPublished={item.type === 'study_material' && item.status === 'published'}
                 actions={
-                  isHOD ? (
-                    // HOD gets special delete button (handled inside ContentCard)
-                    null
-                  ) : (
+                  isHOD ? null : (
                     isStaff && ['draft', 'rejected'].includes(item.status) ? (
                       <Link to={`/content/${item._id}/edit`}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors border border-blue-200">
