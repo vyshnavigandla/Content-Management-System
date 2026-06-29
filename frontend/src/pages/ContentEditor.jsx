@@ -140,14 +140,12 @@ export default function ContentEditor() {
         await api.post('/content', buildFormData(), { headers: { 'Content-Type': 'multipart/form-data' } });
       }
       
-      // ✅ Show appropriate success message
       if (form.type === 'study_material') {
         setSuccess('✅ Study material published successfully!');
-        setTimeout(() => navigate('/content'), 1500);
       } else {
         setSuccess('✅ Content saved as draft!');
-        setTimeout(() => navigate('/content'), 1500);
       }
+      setTimeout(() => navigate('/content'), 1500);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save content');
     } finally {
@@ -155,7 +153,6 @@ export default function ContentEditor() {
     }
   };
 
-  // ✅ Only show submit for approval for non-study materials
   const handleSubmitForApproval = async () => {
     setError('');
     setSuccess('');
@@ -181,7 +178,7 @@ export default function ContentEditor() {
 
   if (loading) return <div className="flex justify-center py-20"><p className="text-gray-500">Loading editor...</p></div>;
 
-  const isLocked = existing && !['draft', 'rejected'].includes(existing.status);
+  const isLocked = existing && !['draft', 'rejected'].includes(existing.status) && existing.type !== 'study_material';
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -346,10 +343,17 @@ export default function ContentEditor() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Attachments (max 5)</label>
             <div 
-              className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-blue-400 transition-colors bg-gray-50 cursor-pointer"
-              onClick={() => attachmentInputRef.current?.click()}
+              className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-blue-400 transition-colors bg-gray-50"
             >
-              <div className="text-center">
+              <div 
+                className="text-center cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (attachmentInputRef.current) {
+                    attachmentInputRef.current.click();
+                  }
+                }}
+              >
                 <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
@@ -362,7 +366,7 @@ export default function ContentEditor() {
                 multiple
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp"
                 onChange={handleAttachmentsChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                className="hidden"
               />
             </div>
             
@@ -432,7 +436,6 @@ export default function ContentEditor() {
               )}
             </button>
 
-            {/* ✅ Only show approval button for non-study materials */}
             {form.type !== 'study_material' && (
               <button 
                 type="button" 

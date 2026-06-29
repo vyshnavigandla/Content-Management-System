@@ -5,79 +5,61 @@ const User = require('../models/User');
 const Content = require('../models/Content');
 const AuditLog = require('../models/AuditLog');
 
-// @desc    Get all users (filterable by role, search by name/email)
-// @route   GET /api/admin/users
-// @access  Private (hod)
 const getUsers = asyncHandler(async (req, res) => {
-  const { role, search } = req.query;
+  const { role, search, page = 1, limit = 20 } = req.query;
 
   const filter = {};
   if (role) filter.role = role;
   if (search) {
     filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
+      { name:  { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
     ];
   }
 
-  const users = await User.find(filter).sort({ createdAt: -1 });
-  res.json({ success: true, count: users.length, data: users });
+  const total = await User.countDocuments(filter);
+  const users = await User.find(filter)
+    .select('-password')
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(parseInt(limit));
+
+  res.json({ success: true, count: users.length, total, pages: Math.ceil(total / limit), data: users });
 });
 
-// @desc    HOD creates a new Faculty or Student account
-// @route   POST /api/admin/users
-// @access  Private (hod)
 const createUser = asyncHandler(async (req, res) => {
   const { name, email, password, role, rollNumber, semester, designation } = req.body;
 
   if (!name || !email || !password || !role) {
-    res.status(400);
-    throw new Error('Name, email, password, and role are required');
+    res.status(400); throw new Error('Name, email, password, and role are required');
   }
-
   if (!['faculty', 'student'].includes(role)) {
-    res.status(400);
-    throw new Error('HOD can only create faculty or student accounts');
+    res.status(400); throw new Error('HOD can only create faculty or student accounts');
   }
 
   const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    res.status(400);
-    throw new Error('A user with this email already exists');
-  }
+  if (existingUser) { res.status(400); throw new Error('A user with this email already exists'); }
 
   const user = await User.create({
-    name,
-    email,
-    password,
-    role,
-    rollNumber: role === 'student' ? rollNumber : undefined,
-    semester:   role === 'student' ? semester   : undefined,
+    name, email, password, role,
+    rollNumber:  role === 'student' ? rollNumber  : undefined,
+    semester:    role === 'student' ? semester    : undefined,
     designation: role === 'faculty' ? designation : undefined,
   });
 
   await AuditLog.create({
-    user: req.user._id,
-    action: 'USER_CREATED',
-    targetType: 'user',
-    targetId: user._id,
+    user: req.user._id, action: 'USER_CREATED',
+    targetType: 'user', targetId: user._id,
     remarks: `${role} account created for ${email}`,
   });
 
   res.status(201).json({
     success: true,
-    data: {
-      _id:   user._id,
-      name:  user.name,
-      email: user.email,
-      role:  user.role,
-    },
+    data: { _id: user._id, name: user.name, email: user.email, role: user.role },
   });
 });
 
-// @desc    Update user role (Promote/Demote HOD)
-// @route   PUT /api/admin/users/:id/role
-// @access  Private (hod)
+// ✅ Update user role (Promote/Demote HOD)
 const updateUserRole = asyncHandler(async (req, res) => {
   const { role } = req.body;
   const targetUser = await User.findById(req.params.id);
@@ -87,52 +69,41 @@ const updateUserRole = asyncHandler(async (req, res) => {
     throw new Error('User not found');
   }
 
-  // Prevent self role change
   if (targetUser._id.toString() === req.user._id.toString()) {
     res.status(400);
     throw new Error('You cannot change your own role');
   }
 
-  // Validate role
   if (!['hod', 'faculty', 'student'].includes(role)) {
     res.status(400);
     throw new Error('Invalid role');
   }
 
-  // If promoting to HOD, demote all other active HODs
   if (role === 'hod') {
-    // Find all active HODs except the target user
-    const activeHODs = await User.find({
+    const currentHOD = await User.findOne({
       role: 'hod',
+      department: targetUser.department,
       isActive: true,
-      _id: { $ne: targetUser._id }
     });
 
-    // Demote all other active HODs to faculty
-    for (const hod of activeHODs) {
-      hod.role = 'faculty';
-      hod.hodPromotedAt = null;
-      hod.previousRole = null;
-      await hod.save();
+    if (currentHOD && currentHOD._id.toString() !== targetUser._id.toString()) {
+      currentHOD.role = 'faculty';
+      currentHOD.hodPromotedAt = null;
+      currentHOD.previousRole = null;
+      await currentHOD.save();
 
       await AuditLog.create({
         user: req.user._id,
         action: 'HOD_DEMOTED',
         targetType: 'user',
-        targetId: hod._id,
-        remarks: `${hod.email} demoted from HOD to Faculty`,
+        targetId: currentHOD._id,
+        remarks: `${currentHOD.email} demoted from HOD to Faculty`,
       });
     }
 
-    if (activeHODs.length > 0) {
-      console.log(`📌 Demoted ${activeHODs.length} HOD(s) to Faculty`);
-    }
-
-    // Store previous role and promotion date
     targetUser.previousRole = targetUser.role;
     targetUser.hodPromotedAt = new Date();
   } else {
-    // If demoting from HOD, clear HOD metadata
     if (targetUser.role === 'hod') {
       targetUser.hodPromotedAt = null;
       targetUser.previousRole = null;
@@ -162,68 +133,24 @@ const updateUserRole = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Activate or deactivate a user account
-// @route   PUT /api/admin/users/:id/status
-// @access  Private (hod)
 const updateUserStatus = asyncHandler(async (req, res) => {
   const { isActive } = req.body;
 
   if (typeof isActive !== 'boolean') {
-    res.status(400);
-    throw new Error('isActive must be true or false');
+    res.status(400); throw new Error('isActive must be true or false');
   }
 
   const user = await User.findById(req.params.id);
   if (!user) { res.status(404); throw new Error('User not found'); }
 
   if (user._id.toString() === req.user._id.toString()) {
-    res.status(400);
-    throw new Error('You cannot change the status of your own account');
+    res.status(400); throw new Error('You cannot change your own account status');
   }
 
-  // ✅ If activating a HOD, demote all other active HODs
-  if (user.role === 'hod' && isActive) {
-    // Find all other active HODs
-    const activeHODs = await User.find({
-      role: 'hod',
-      isActive: true,
-      _id: { $ne: user._id }
-    });
-
-    // Demote all other active HODs to faculty
-    for (const hod of activeHODs) {
-      hod.role = 'faculty';
-      hod.hodPromotedAt = null;
-      hod.previousRole = null;
-      await hod.save();
-
-      await AuditLog.create({
-        user: req.user._id,
-        action: 'HOD_DEMOTED',
-        targetType: 'user',
-        targetId: hod._id,
-        remarks: `${hod.email} demoted from HOD to Faculty for new HOD`,
-      });
-    }
-
-    if (activeHODs.length > 0) {
-      console.log(`📌 Demoted ${activeHODs.length} HOD(s) to Faculty`);
-    }
-  }
-
-  // ✅ If deactivating a HOD, demote them to faculty
   if (user.role === 'hod' && !isActive) {
     user.role = 'faculty';
     user.hodPromotedAt = null;
     user.previousRole = null;
-    
-    await AuditLog.create({
-      user: req.user._id,
-      action: 'HOD_DEMOTED',
-      targetType: 'user',
-      targetId: user._id,
-      remarks: `${user.email} deactivated and demoted from HOD to Faculty`,
-    });
   }
 
   user.isActive = isActive;
@@ -232,46 +159,31 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   await AuditLog.create({
     user: req.user._id,
     action: isActive ? 'USER_ACTIVATED' : 'USER_DEACTIVATED',
-    targetType: 'user',
-    targetId: user._id,
+    targetType: 'user', targetId: user._id,
     remarks: `${user.email} ${isActive ? 'activated' : 'deactivated'}`,
   });
 
-  res.json({ 
-    success: true, 
-    message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
-    data: user 
-  });
+  res.json({ success: true, data: user });
 });
 
-// @desc    Delete a user account
-// @route   DELETE /api/admin/users/:id
-// @access  Private (hod)
 const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) { res.status(404); throw new Error('User not found'); }
-
   if (user._id.toString() === req.user._id.toString()) {
-    res.status(400);
-    throw new Error('You cannot delete your own account');
+    res.status(400); throw new Error('You cannot delete your own account');
   }
 
   await user.deleteOne();
 
   await AuditLog.create({
-    user: req.user._id,
-    action: 'USER_DELETED',
-    targetType: 'user',
-    targetId: req.params.id,
+    user: req.user._id, action: 'USER_DELETED',
+    targetType: 'user', targetId: req.params.id,
     remarks: `${user.email} deleted`,
   });
 
   res.json({ success: true, message: 'User deleted successfully' });
 });
 
-// @desc    Dashboard summary
-// @route   GET /api/admin/dashboard
-// @access  Private (faculty, hod)
 const getDashboardStats = asyncHandler(async (req, res) => {
   const [
     totalUsers,
@@ -293,8 +205,9 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     Content.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
     Content.find({ status: 'published' })
       .sort({ publishedAt: -1 })
-      .limit(5)
-      .select('title type publishedAt'),
+      .limit(10)
+      .select('title type publishedAt createdBy')
+      .populate('createdBy', 'name'),
     AuditLog.find({})
       .populate('user', 'name role')
       .sort({ createdAt: -1 })
@@ -327,16 +240,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Lightweight dashboard for Students
-// @route   GET /api/admin/dashboard/student
-// @access  Private (student)
 const getStudentDashboard = asyncHandler(async (req, res) => {
   const recentPublished = await Content.find({ status: 'published' })
-    .sort({ publishedAt: -1 })
-    .limit(10)
-   
-    .select('title type publishedAt createBy')
-     .populate('createdBy', 'name')
+    .sort({ publishedAt: -1 }).limit(8)
+    .populate('createdBy', 'name role')
+    .select('title type subject semester publishedAt');
 
   const counts = await Content.aggregate([
     { $match: { status: 'published' } },
@@ -347,13 +255,9 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
   counts.forEach((item) => { typeCounts[item._id] = item.count; });
 
   const activeHOD = await User.findOne({ role: 'hod', isActive: true })
-    .select('name email designation')
-    .lean();
+    .select('name email designation').lean();
 
-  res.json({
-    success: true,
-    data: { recentPublished, typeCounts, activeHOD },
-  });
+  res.json({ success: true, data: { recentPublished, typeCounts, activeHOD } });
 });
 
 module.exports = {

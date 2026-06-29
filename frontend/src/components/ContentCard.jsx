@@ -62,7 +62,6 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
   const plainTextBody = getPlainText(content.body);
   const shouldTruncate = plainTextBody.length > 300;
 
-  // Helper functions for attachments
   const isImageFile = (fileName) => {
     if (!fileName) return false;
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -80,7 +79,6 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
     return `${cleanBase}/${cleanPath}`;
   };
 
-  // Get image attachments
   const imageAttachments = content.attachments?.filter(f => isImageFile(f)) || [];
 
   return (
@@ -91,7 +89,6 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
             <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider ${TYPE_COLORS[content.type] || 'text-gray-700 bg-gray-100'}`}>
               {TYPE_LABELS[content.type] || content.type}
             </span>
-            {/* ✅ Auto-Published Badge for Study Materials */}
             {isAutoPublished && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,7 +157,6 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
         </div>
       )}
 
-      {/* Content Body - Renders HTML properly */}
       {content.body && (
         <div className="mb-4 mt-2">
           <div 
@@ -199,7 +195,6 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
         </Link>
       )}
 
-      {/* Image Attachments Preview Grid */}
       {imageAttachments.length > 0 && (
         <div className="mb-3">
           <div className="grid grid-cols-3 gap-2">
@@ -264,7 +259,6 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
         </div>
       )}
 
-      {/* Date only - Views REMOVED */}
       <div className="flex items-center text-xs text-gray-400 mb-3">
         <span>📅 {new Date(content.createdAt).toLocaleDateString('en-US', { 
           year: 'numeric', 
@@ -273,7 +267,6 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
         })}</span>
       </div>
 
-      {/* Attachments count with icon */}
       {content.attachments?.length > 0 && (
         <div className="flex items-center gap-2 mb-3 p-2 bg-gray-50 rounded-lg">
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

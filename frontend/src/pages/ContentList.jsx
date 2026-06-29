@@ -1,8 +1,4 @@
 // pages/ContentList.jsx
-// FIX: removed duplicate useEffect that caused double fetch on mount;
-// added onDelete prop to ContentCard so deleted items disappear immediately.
-// FIX: HOD can now delete any content regardless of status or owner
-// FIX: Added Auto-Published badge for study materials
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
@@ -69,16 +65,15 @@ export default function ContentList() {
 
   useEffect(() => {
     fetchItems();
-  }, [type, statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [type, statusFilter]);
 
   useEffect(() => {
     fetchItems();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearchSubmit = (e) => { e.preventDefault(); fetchItems(); };
   const handleDelete = (deletedId) => setItems((prev) => prev.filter((item) => item._id !== deletedId));
 
-  // ✅ Helper to check if content is auto-published (study materials)
   const isAutoPublished = (item) => {
     return item.type === 'study_material' && item.status === 'published';
   };
@@ -173,7 +168,7 @@ export default function ContentList() {
                 key={item._id}
                 content={item}
                 onDelete={handleDelete}
-               isAutoPublished={item.type === 'study_material' && item.status === 'published'}
+                isAutoPublished={isAutoPublished(item)}
                 actions={
                   isHOD ? null : (
                     isStaff && ['draft', 'rejected'].includes(item.status) ? (

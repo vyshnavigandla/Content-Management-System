@@ -67,7 +67,6 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto p-6">
 
-      {/* Welcome Header */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-2">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
@@ -89,10 +88,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Faculty / HOD dashboard */}
       {user.role !== 'student' && (
         <>
-          {/* Stats — 3 cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
             <StatCard
               label="Total Users"
@@ -114,7 +111,6 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Content Overview + Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <div className="flex items-center gap-3 mb-6">
@@ -194,7 +190,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recently Published - Updated to show study materials */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
@@ -235,10 +230,8 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* Student dashboard */}
       {user.role === 'student' && (
         <>
-          {/* Type counts */}
           {data.typeCounts && Object.keys(data.typeCounts).length > 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
               {Object.entries(data.typeCounts).map(([type, count]) => (
@@ -253,7 +246,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Recently Published */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
