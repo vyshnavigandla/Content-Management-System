@@ -7,6 +7,7 @@ const router = express.Router();
 const {
   getUsers,
   createUser,
+  updateUserRole,        // ✅ Added
   updateUserStatus,
   deleteUser,
   getDashboardStats,
@@ -18,16 +19,19 @@ const { authorize } = require('../middleware/roleMiddleware');
 
 router.use(protect);
 
-// --- Dashboards ---
+// ──────────────────────────────────────────────────────────────
+//  Dashboards
+// ──────────────────────────────────────────────────────────────
+
 router.get('/dashboard', authorize('faculty', 'hod'), getDashboardStats);
 router.get('/dashboard/student', authorize('student'), getStudentDashboard);
 
-// --- User management (HOD only) ---
-router.route('/users').get(authorize('hod'), getUsers).post(authorize('hod'), createUser);
-// backend/routes/adminRoutes.js
+// ──────────────────────────────────────────────────────────────
+//  Faculty Directory (Public)
+// ──────────────────────────────────────────────────────────────
 
-// Add this route
-router.get('/faculty', protect, authorize('admin', 'hod'), async (req, res) => {
+// ✅ Get faculty members (including HODs)
+router.get('/faculty', protect, async (req, res) => {
   try {
     const faculty = await User.find({ 
       role: { $in: ['faculty', 'hod'] } 
@@ -50,7 +54,23 @@ router.get('/faculty', protect, authorize('admin', 'hod'), async (req, res) => {
   }
 });
 
+// ──────────────────────────────────────────────────────────────
+//  User Management (HOD only)
+// ──────────────────────────────────────────────────────────────
+
+// Get all users with filters
+router.get('/users', authorize('hod'), getUsers);
+
+// Create new user (faculty or student only)
+router.post('/users', authorize('hod'), createUser);
+
+// ✅ Update user role (Promote/Demote HOD)
+router.put('/users/:id/role', authorize('hod'), updateUserRole);
+
+// Activate or deactivate user
 router.put('/users/:id/status', authorize('hod'), updateUserStatus);
+
+// Delete user
 router.delete('/users/:id', authorize('hod'), deleteUser);
 
 module.exports = router;

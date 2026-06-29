@@ -75,6 +75,90 @@ const createUser = asyncHandler(async (req, res) => {
   });
 });
 
+// ✅ NEW: Update user role (Promote/Demote to/from HOD)
+// @desc    Update user role (Promote/Demote HOD)
+// @route   PUT /api/admin/users/:id/role
+// @access  Private (hod)
+const updateUserRole = asyncHandler(async (req, res) => {
+  const { role } = req.body;
+  const targetUser = await User.findById(req.params.id);
+
+  if (!targetUser) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Prevent self role change
+  if (targetUser._id.toString() === req.user._id.toString()) {
+    res.status(400);
+    throw new Error('You cannot change your own role');
+  }
+
+  // Validate role
+  if (!['hod', 'faculty', 'student'].includes(role)) {
+    res.status(400);
+    throw new Error('Invalid role');
+  }
+
+  // If promoting to HOD, demote current HOD
+  if (role === 'hod') {
+    // Find current HOD in the same department
+    const currentHOD = await User.findOne({
+      role: 'hod',
+      department: targetUser.department,
+      isActive: true,
+    });
+
+    if (currentHOD && currentHOD._id.toString() !== targetUser._id.toString()) {
+      // Demote current HOD back to faculty
+      currentHOD.role = 'faculty';
+      currentHOD.hodPromotedAt = null;
+      currentHOD.previousRole = null;
+      await currentHOD.save();
+
+      await AuditLog.create({
+        user: req.user._id,
+        action: 'HOD_DEMOTED',
+        targetType: 'user',
+        targetId: currentHOD._id,
+        remarks: `${currentHOD.email} demoted from HOD to Faculty`,
+      });
+    }
+
+    // Store previous role and promotion date
+    targetUser.previousRole = targetUser.role;
+    targetUser.hodPromotedAt = new Date();
+  } else {
+    // If demoting from HOD, clear HOD metadata
+    if (targetUser.role === 'hod') {
+      targetUser.hodPromotedAt = null;
+      targetUser.previousRole = null;
+    }
+  }
+
+  targetUser.role = role;
+  await targetUser.save();
+
+  await AuditLog.create({
+    user: req.user._id,
+    action: 'ROLE_CHANGED',
+    targetType: 'user',
+    targetId: targetUser._id,
+    remarks: `${targetUser.email} role changed to: ${role}`,
+  });
+
+  res.json({
+    success: true,
+    message: `User role updated to ${role}`,
+    data: {
+      _id: targetUser._id,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: targetUser.role,
+    },
+  });
+});
+
 // @desc    Activate or deactivate a user account
 // @route   PUT /api/admin/users/:id/status
 // @access  Private (hod)
@@ -92,6 +176,13 @@ const updateUserStatus = asyncHandler(async (req, res) => {
   if (user._id.toString() === req.user._id.toString()) {
     res.status(400);
     throw new Error('You cannot change the status of your own account');
+  }
+
+  // If deactivating HOD, demote them first
+  if (user.role === 'hod' && !isActive) {
+    user.role = 'faculty';
+    user.hodPromotedAt = null;
+    user.previousRole = null;
   }
 
   user.isActive = isActive;
@@ -139,20 +230,17 @@ const deleteUser = asyncHandler(async (req, res) => {
 const getDashboardStats = asyncHandler(async (req, res) => {
   const [
     totalUsers,
-    totalFaculty,       // pure faculty role only
-    totalHODs,          // NEW: all HOD accounts ever in the system
-    activeHOD,          // NEW: the currently active HOD
+    totalFaculty,
+    totalHODs,
+    activeHOD,
     totalStudents,
     contentCounts,
     recentPublished,
     recentLogs,
   ] = await Promise.all([
     User.countDocuments({}),
-    // FIX: faculty count now includes HODs (HOD is also faculty)
     User.countDocuments({ role: { $in: ['faculty', 'hod'] } }),
-    // Total HOD accounts — shows how many HODs the department has had
     User.countDocuments({ role: 'hod' }),
-    // Current active HOD details
     User.findOne({ role: 'hod', isActive: true })
         .select('name email designation createdAt')
         .lean(),
@@ -168,7 +256,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       .limit(10),
   ]);
 
-  // All HOD accounts for the "HOD history" list
   const allHODs = await User.find({ role: 'hod' })
     .select('name email designation isActive createdAt')
     .sort({ createdAt: -1 })
@@ -183,11 +270,10 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     success: true,
     data: {
       totalUsers,
-      // FIX: faculty count includes HODs since HOD is also a faculty member
       totalFaculty,
-      totalHODs,       // how many HOD accounts exist (history)
-      activeHOD,       // current HOD's details
-      allHODs,         // full HOD history list
+      totalHODs,
+      activeHOD,
+      allHODs,
       totalStudents,
       contentCounts: statusCounts,
       recentPublished,
@@ -214,7 +300,6 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
   const typeCounts = {};
   counts.forEach((item) => { typeCounts[item._id] = item.count; });
 
-  // Students also get to see who the current HOD is
   const activeHOD = await User.findOne({ role: 'hod', isActive: true })
     .select('name email designation')
     .lean();
@@ -228,6 +313,7 @@ const getStudentDashboard = asyncHandler(async (req, res) => {
 module.exports = {
   getUsers,
   createUser,
+  updateUserRole, // ✅ Added
   updateUserStatus,
   deleteUser,
   getDashboardStats,
