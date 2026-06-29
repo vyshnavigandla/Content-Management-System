@@ -193,9 +193,7 @@ const trackDownload = asyncHandler(async (req, res) => {
   }
 });
 
-// controllers/contentController.js
-// ... (keep all imports and other functions)
-
+// ✅ FIXED: Auto-publish study materials
 const createContent = asyncHandler(async (req, res) => {
   const {
     title, body, type, subject, semester, tags, category,
@@ -220,10 +218,13 @@ const createContent = asyncHandler(async (req, res) => {
     slug: finalSlug,
   };
 
-  // ✅ NEW: Auto-publish study materials, others go to draft
+  // ✅ Auto-publish study materials, others go to draft
   let status = 'draft';
+  let publishedAt = null;
+  
   if (type === 'study_material') {
     status = 'published';
+    publishedAt = new Date();
   }
 
   const content = await Content.create({
@@ -237,11 +238,12 @@ const createContent = asyncHandler(async (req, res) => {
     excerpt: excerpt || '',
     seo: seoData,
     readingTime,
-    status: status, // ✅ Study materials auto-published
+    status: status,
+    publishedAt: publishedAt,
     createdBy: req.user._id,
   });
 
-  // ✅ If study material, log auto-publish
+  // ✅ Log auto-publish for study materials
   if (type === 'study_material') {
     await logAction({
       user: req.user._id, action: 'STUDY_MATERIAL_AUTO_PUBLISHED',
@@ -253,7 +255,6 @@ const createContent = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data: content });
 });
 
-// ... (rest of the file remains the same)
 const getMyContent = asyncHandler(async (req, res) => {
   const { status, type } = req.query;
   const filter = { createdBy: req.user._id };
@@ -302,13 +303,16 @@ const getContentById = asyncHandler(async (req, res) => {
   }
 });
 
+// ✅ FIXED: Allow editing published study materials
 const updateContent = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id);
   if (!content) { res.status(404); throw new Error('Content not found'); }
   if (content.createdBy.toString() !== req.user._id.toString()) {
     res.status(403); throw new Error('You can only edit your own content');
   }
-  if (!['draft', 'rejected'].includes(content.status)) {
+  
+  // ✅ Allow editing study materials even if published
+  if (content.type !== 'study_material' && !['draft', 'rejected'].includes(content.status)) {
     res.status(400); throw new Error('Only draft or rejected content can be edited');
   }
 
@@ -357,7 +361,13 @@ const updateContent = asyncHandler(async (req, res) => {
     content.featuredImage = newFeaturedImage;
   }
 
-  if (content.status === 'rejected') {
+  // ✅ Keep study materials published
+  if (content.type === 'study_material') {
+    content.status = 'published';
+    if (!content.publishedAt) {
+      content.publishedAt = new Date();
+    }
+  } else if (content.status === 'rejected') {
     content.status = 'draft';
     content.reviewRemarks = '';
   }
