@@ -84,7 +84,7 @@ export default function Profile() {
           if (res.data.data.user?.name) {
             updateUser({ name: res.data.data.user.name });
           }
-          setSuccess('✅ Profile updated successfully!');
+          setSuccess('Profile updated successfully!');
           setTimeout(() => setSuccess(''), 3000);
         } else {
           setError(res.data?.message || 'Failed to update profile');
@@ -97,7 +97,7 @@ export default function Profile() {
       if (err.response && err.response.status !== 200 && err.response.status !== 201) {
         setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
       } else {
-        setSuccess('✅ Profile updated successfully!');
+        setSuccess('Profile updated successfully!');
         setTimeout(() => setSuccess(''), 3000);
       }
     } finally {
@@ -139,7 +139,7 @@ export default function Profile() {
       });
       
       // ✅ Set success message
-      setPasswordSuccess('✅ Password changed successfully!');
+      setPasswordSuccess('Password changed successfully!');
       
       // Reset password form
       setPasswordForm({
@@ -170,10 +170,7 @@ export default function Profile() {
       <div className="max-w-2xl mx-auto p-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-gray-500 text-lg">Loading your profile...</p>
           </div>
         </div>
@@ -193,9 +190,7 @@ export default function Profile() {
       {success && (
         <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg animate-fadeIn">
           <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+            <span className="text-green-500 font-bold text-lg flex-shrink-0">✓</span>
             <p className="text-sm text-green-700">{success}</p>
           </div>
         </div>
@@ -205,9 +200,7 @@ export default function Profile() {
       {passwordSuccess && (
         <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg animate-fadeIn">
           <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+            <span className="text-green-500 font-bold text-lg flex-shrink-0">✓</span>
             <p className="text-sm text-green-700">{passwordSuccess}</p>
           </div>
         </div>
@@ -217,9 +210,7 @@ export default function Profile() {
       {error && (
         <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg animate-shake">
           <div className="flex items-center gap-2">
-            <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
+            <span className="text-red-500 font-bold text-lg flex-shrink-0">!</span>
             <p className="text-sm text-red-700">{error}</p>
           </div>
         </div>
@@ -270,9 +261,7 @@ export default function Profile() {
         {/* Form Fields Card */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-6">
           <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
+            <span className="text-blue-600 font-bold">P</span>
             Edit Profile Information
           </h3>
 
@@ -302,9 +291,9 @@ export default function Profile() {
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
                   />
                   <div className="text-center">
-                    <svg className="mx-auto h-8 w-8 text-gray-400 group-hover:text-blue-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
+                    <div className="mx-auto h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                      <span className="text-gray-400 group-hover:text-blue-500">+</span>
+                    </div>
                     <p className="mt-1 text-sm text-gray-500 group-hover:text-blue-600">
                       {photoFile ? photoFile.name : 'Click to upload photo'}
                     </p>
@@ -315,11 +304,9 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setPhotoFile(null)}
-                  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                  className="p-2 text-gray-400 hover:text-red-500 transition-colors text-lg font-bold"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  ×
                 </button>
               )}
             </div>
@@ -388,14 +375,11 @@ export default function Profile() {
         >
           {saving ? (
             <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
               Saving...
             </span>
           ) : (
-            '💾 Save Profile'
+            'Save Profile'
           )}
         </button>
       </form>
@@ -406,9 +390,7 @@ export default function Profile() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-yellow-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+                <span className="text-yellow-600 font-bold text-lg">P</span>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-800">Change Password</h3>
@@ -479,10 +461,7 @@ export default function Profile() {
               >
                 {changingPassword ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
                     Updating Password...
                   </span>
                 ) : (
@@ -495,7 +474,7 @@ export default function Profile() {
       </div>
 
       {/* Animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-5px); }

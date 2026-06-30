@@ -15,9 +15,9 @@ const TYPES = [
 ];
 
 const TARGET_AUDIENCE = [
-  { value: 'ug', label: '🎓 UG Students' },
-  { value: 'pg', label: '📚 PG Students' },
-  { value: 'both', label: '👥 Both UG & PG' },
+  { value: 'ug', label: 'UG Students' },
+  { value: 'pg', label: 'PG Students' },
+  { value: 'both', label: 'Both UG & PG' },
 ];
 
 const htmlWordCount = (html) => {
@@ -141,7 +141,7 @@ export default function ContentEditor() {
       }
       
       // ✅ All content saved as draft
-      setSuccess('✅ Content saved as draft!');
+      setSuccess('Content saved as draft!');
       setTimeout(() => navigate('/content'), 1500);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save content');
@@ -164,7 +164,7 @@ export default function ContentEditor() {
         contentId = res.data.data._id;
       }
       await api.put(`/content/${contentId}/submit`);
-      setSuccess('✅ Content submitted for approval!');
+      setSuccess('Content submitted for approval!');
       setTimeout(() => navigate('/content'), 1500);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit for approval');
@@ -182,7 +182,7 @@ export default function ContentEditor() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{isEditMode ? 'Edit Content' : 'Create New Content'}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          📝 All content requires HOD approval before publishing
+          All content requires HOD approval before publishing
         </p>
       </div>
 
@@ -235,7 +235,7 @@ export default function ContentEditor() {
             >
               {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
-            <p className="text-xs text-yellow-600 mt-1.5">⏳ All content requires HOD approval before publishing</p>
+            <p className="text-xs text-yellow-600 mt-1.5">All content requires HOD approval before publishing</p>
           </div>
 
           {/* Target Audience */}
@@ -346,9 +346,9 @@ export default function ContentEditor() {
                   }
                 }}
               >
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
+                <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <span className="text-gray-400 text-xl">+</span>
+                </div>
                 <p className="text-sm text-gray-600">Click to upload files (max 5)</p>
                 <p className="text-xs text-gray-400">PDF, DOC, DOCX, PPT, PPTX, JPG, PNG (Max 10MB each)</p>
               </div>
@@ -371,9 +371,9 @@ export default function ContentEditor() {
                       {file.isImage ? (
                         <img src={file.preview} alt={file.name} className="w-10 h-10 object-cover rounded" />
                       ) : (
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
+                        <div className="w-8 h-8 bg-gray-300 rounded flex items-center justify-center">
+                          <span className="text-xs font-bold text-gray-500">DOC</span>
+                        </div>
                       )}
                       <div className="min-w-0">
                         <p className="text-sm text-gray-700 truncate">{file.name}</p>
@@ -383,20 +383,18 @@ export default function ContentEditor() {
                     <button
                       type="button"
                       onClick={() => removeAttachment(index)}
-                      className="text-red-500 hover:text-red-700 p-1"
+                      className="text-red-500 hover:text-red-700 p-1 text-lg font-bold"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      ×
                     </button>
                   </div>
                 ))}
                 {files.filter(f => typeof f === 'string').map((file, index) => (
                   <div key={`existing-${index}`} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-3 min-w-0">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+                      <div className="w-8 h-8 bg-blue-300 rounded flex items-center justify-center">
+                        <span className="text-xs font-bold text-blue-700">FILE</span>
+                      </div>
                       <div className="min-w-0">
                         <p className="text-sm text-gray-700 truncate">{file.split('/').pop()}</p>
                         <p className="text-xs text-blue-500">Existing file</p>
@@ -413,18 +411,15 @@ export default function ContentEditor() {
             <button 
               type="submit" 
               disabled={saving}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 disabled:opacity-60 transition-all"
+              className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 disabled:opacity-60 transition-all"
             >
               {saving ? (
                 <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
                   Saving...
                 </span>
               ) : (
-                '💾 Save as Draft'
+                'Save as Draft'
               )}
             </button>
 
@@ -433,9 +428,9 @@ export default function ContentEditor() {
               type="button" 
               onClick={handleSubmitForApproval} 
               disabled={saving}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 transition-all shadow-lg"
+              className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 transition-all shadow-lg"
             >
-              {saving ? 'Submitting...' : '📤 Save & Submit for Approval'}
+              {saving ? 'Submitting...' : 'Save & Submit for Approval'}
             </button>
           </div>
         </form>

@@ -71,8 +71,8 @@ export default function MediaLibrary({ onSelect, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-bold text-gray-900">Media Library</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            ✕
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">
+            ×
           </button>
         </div>
 
@@ -97,7 +97,7 @@ export default function MediaLibrary({ onSelect, onClose }) {
             <option value="video">Videos</option>
           </select>
 
-          <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
             {uploading ? 'Uploading...' : 'Upload'}
             <input
               type="file"
@@ -136,7 +136,7 @@ export default function MediaLibrary({ onSelect, onClose }) {
                     />
                   ) : (
                     <div className="w-full h-40 bg-gray-100 flex items-center justify-center">
-                      <span className="text-4xl">📄</span>
+                      <span className="text-gray-400 text-3xl">DOC</span>
                     </div>
                   )}
                   <div className="p-2">
@@ -152,9 +152,9 @@ export default function MediaLibrary({ onSelect, onClose }) {
                       e.stopPropagation();
                       handleDelete(item._id);
                     }}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold w-5 h-5 flex items-center justify-center"
                   >
-                    ✕
+                    ×
                   </button>
                 </div>
               ))}

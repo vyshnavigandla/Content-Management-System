@@ -100,9 +100,9 @@ export default function ApprovalQueue() {
 
       {items.length === 0 && (
         <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <span className="text-3xl text-green-600">✓</span>
+          </div>
           <h3 className="text-lg font-medium text-gray-900 mb-1">All caught up!</h3>
           <p className="text-gray-500">No content is waiting for approval.</p>
         </div>
@@ -138,11 +138,9 @@ export default function ApprovalQueue() {
                   </div>
                   <button
                     onClick={() => toggleExpand(item._id)}
-                    className="text-gray-400 hover:text-gray-600 p-1"
+                    className="text-gray-400 hover:text-gray-600 p-1 text-xl"
                   >
-                    <svg className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    {isExpanded ? '−' : '+'}
                   </button>
                 </div>
               </div>
@@ -167,9 +165,7 @@ export default function ApprovalQueue() {
               {item.attachments && item.attachments.length > 0 && (
                 <div className="px-4 pb-2">
                   <div className="flex items-center gap-1 text-xs text-gray-400">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                    </svg>
+                    <span className="text-gray-400 font-bold text-sm">📎</span>
                     <span>{item.attachments.length} attachment{item.attachments.length !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
@@ -202,25 +198,19 @@ export default function ApprovalQueue() {
                     <button
                       onClick={() => handleApprove(item._id)}
                       disabled={actingId === item._id}
-                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors flex items-center gap-1"
+                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors"
                     >
                       {actingId === item._id ? (
                         <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                       ) : (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
+                        'Approve & Publish'
                       )}
-                      Approve & Publish
                     </button>
                     <button
                       onClick={() => handleReject(item._id)}
                       disabled={actingId === item._id}
-                      className="px-4 py-2 bg-red-50 text-red-600 text-sm rounded-lg hover:bg-red-100 disabled:opacity-60 transition-colors flex items-center gap-1"
+                      className="px-4 py-2 bg-red-50 text-red-600 text-sm rounded-lg hover:bg-red-100 disabled:opacity-60 transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
                       Reject
                     </button>
                   </div>

@@ -8,18 +8,6 @@ import CommentSection from '../components/CommentSection';
 import Spinner from '../components/Spinner';
 import DOMPurify from 'dompurify';
 import { Helmet } from 'react-helmet-async';
-import {
-  ArrowLeftIcon,
-  PencilIcon,
-  DocumentArrowDownIcon,
-  EyeIcon,
-  CalendarIcon,
-  UserIcon,
-  PaperClipIcon,
-  PhotoIcon,
-  DocumentIcon,
-  ArrowDownTrayIcon,
-} from '@heroicons/react/24/outline';
 
 export default function ContentDetail() {
   const { id, slug } = useParams();
@@ -94,21 +82,21 @@ export default function ContentDetail() {
     return filePath.split('/').pop() || filePath;
   };
 
-  const getFileIcon = (fileName) => {
+  const getFileTypeLabel = (fileName) => {
     const ext = fileName?.split('.').pop()?.toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) {
-      return <PhotoIcon className="h-5 w-5 text-green-500" />;
+      return 'Image';
     }
     if (['pdf'].includes(ext)) {
-      return <DocumentIcon className="h-5 w-5 text-red-500" />;
+      return 'PDF';
     }
     if (['doc', 'docx'].includes(ext)) {
-      return <DocumentIcon className="h-5 w-5 text-blue-500" />;
+      return 'Document';
     }
     if (['xls', 'xlsx'].includes(ext)) {
-      return <DocumentIcon className="h-5 w-5 text-green-600" />;
+      return 'Spreadsheet';
     }
-    return <PaperClipIcon className="h-5 w-5 text-gray-400" />;
+    return 'File';
   };
 
   const isImageFile = (fileName) => {
@@ -203,8 +191,7 @@ export default function ContentDetail() {
           to="/content"
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
         >
-          <ArrowLeftIcon className="h-4 w-4" />
-          Back to Content
+          ← Back to Content
         </Link>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -223,24 +210,20 @@ export default function ContentDetail() {
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">{content.title}</h1>
               <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
-                <span className="flex items-center gap-1">
-                  <UserIcon className="h-4 w-4" />
+                <span>
                   {content.createdBy?.name || 'Unknown'}
                   {content.createdBy?.designation && (
-                    <span className="text-gray-400">· {content.createdBy.designation}</span>
+                    <span className="text-gray-400"> · {content.createdBy.designation}</span>
                   )}
                 </span>
-                <span className="flex items-center gap-1">
-                  <CalendarIcon className="h-4 w-4" />
+                <span>
                   {new Date(content.createdAt).toLocaleDateString()}
                 </span>
-                <span className="flex items-center gap-1">
-                  <EyeIcon className="h-4 w-4" />
+                <span>
                   {content.viewCount || 0} views
                 </span>
                 {content.downloadCount > 0 && (
-                  <span className="flex items-center gap-1">
-                    <DocumentArrowDownIcon className="h-4 w-4" />
+                  <span>
                     {content.downloadCount} downloads
                   </span>
                 )}
@@ -250,9 +233,8 @@ export default function ContentDetail() {
             {canEdit && (
               <Link
                 to={`/content/${content._id}/edit`}
-                className="flex-shrink-0 px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-1"
+                className="flex-shrink-0 px-3 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
-                <PencilIcon className="h-4 w-4" />
                 Edit
               </Link>
             )}
@@ -328,8 +310,7 @@ export default function ContentDetail() {
 
           {content.attachments && content.attachments.length > 0 && (
             <div className="mt-6 border-t border-gray-100 pt-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <PaperClipIcon className="h-4 w-4" />
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">
                 Attachments ({content.attachments.length})
               </h3>
               <div className="space-y-3">
@@ -345,20 +326,21 @@ export default function ContentDetail() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 min-w-0">
-                          {getFileIcon(fileName)}
+                          <span className="text-sm font-medium text-gray-500 min-w-[50px]">
+                            {getFileTypeLabel(fileName)}
+                          </span>
                           <span className="text-sm text-gray-700 truncate">{fileName}</span>
                         </div>
                         <button
                           onClick={() => handleDownload(filePath, idx)}
                           disabled={downloadingIdx === idx}
-                          className="flex-shrink-0 ml-3 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors flex items-center gap-1"
+                          className="flex-shrink-0 ml-3 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
                         >
                           {downloadingIdx === idx ? (
                             <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
                           ) : (
-                            <ArrowDownTrayIcon className="h-3 w-3" />
+                            'Download'
                           )}
-                          Download
                         </button>
                       </div>
                       
@@ -373,7 +355,6 @@ export default function ContentDetail() {
                               e.target.style.display = 'none';
                               e.target.parentElement.innerHTML = `
                                 <div class="p-4 text-center text-gray-400 text-sm">
-                                  <PhotoIcon class="h-8 w-8 mx-auto mb-1" />
                                   Failed to load image
                                 </div>
                               `;
@@ -404,8 +385,7 @@ export default function ContentDetail() {
           )}
 
           {content.scheduledPublishAt && content.status !== 'published' && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800 flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4 flex-shrink-0" />
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
               Scheduled to publish on{' '}
               <strong>{new Date(content.scheduledPublishAt).toLocaleString()}</strong>
             </div>

@@ -7,22 +7,22 @@ import ContentCard from '../components/ContentCard';
 
 const TYPES = [
   { value: '', label: 'All Types' },
-  { value: 'notice', label: '📢 Notice' },
-  { value: 'circular', label: '📋 Circular' },
-  { value: 'event', label: '🎉 Event' },
-  { value: 'exam_schedule', label: '📅 Exam Schedule' },
-  { value: 'study_material', label: '📚 Study Material' },
-  { value: 'placement_update', label: '💼 Placement Update' },
-  { value: 'achievement', label: '🏆 Achievement' },
+  { value: 'notice', label: 'Notice' },
+  { value: 'circular', label: 'Circular' },
+  { value: 'event', label: 'Event' },
+  { value: 'exam_schedule', label: 'Exam Schedule' },
+  { value: 'study_material', label: 'Study Material' },
+  { value: 'placement_update', label: 'Placement Update' },
+  { value: 'achievement', label: 'Achievement' },
 ];
 
 const STATUSES = [
   { value: '', label: 'All Statuses' },
-  { value: 'draft', label: '📝 Draft' },
-  { value: 'pending_approval', label: '⏳ Pending Approval' },
-  { value: 'published', label: '✅ Published' },
-  { value: 'rejected', label: '❌ Rejected' },
-  { value: 'archived', label: '📦 Archived' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'pending_approval', label: 'Pending Approval' },
+  { value: 'published', label: 'Published' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'archived', label: 'Archived' },
 ];
 
 export default function ContentList() {
@@ -83,7 +83,7 @@ export default function ContentList() {
             {isStaff ? 'Manage and track your published content' : 'Browse department publications and updates'}
             {isStaff && (
               <span className="block text-sm text-yellow-600 mt-1">
-                ⏳ All content requires HOD approval before publishing
+                All content requires HOD approval before publishing
               </span>
             )}
           </p>

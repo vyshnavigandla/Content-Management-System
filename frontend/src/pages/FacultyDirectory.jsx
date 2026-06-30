@@ -2,21 +2,6 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { 
-  MagnifyingGlassIcon, 
-  UserCircleIcon, 
-  EnvelopeIcon, 
-  PhoneIcon, 
-  AcademicCapIcon,
-  BookOpenIcon,
-  LinkIcon,
-  UserGroupIcon,
-  StarIcon,
-  CalendarIcon,
-  XMarkIcon,
-  BriefcaseIcon,
-  GlobeAltIcon
-} from '@heroicons/react/24/outline';
 
 export default function FacultyDirectory() {
   const { user } = useAuth();
@@ -96,14 +81,7 @@ export default function FacultyDirectory() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <svg
-              className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-gray-500 text-lg">Loading faculty directory...</p>
           </div>
         </div>
@@ -140,7 +118,7 @@ export default function FacultyDirectory() {
       {/* Search Bar */}
       <div className="mb-8">
         <div className="relative max-w-md">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
           <input
             type="text"
             placeholder="Search by name, designation, research, or bio..."
@@ -154,7 +132,9 @@ export default function FacultyDirectory() {
       {/* Faculty Grid */}
       {filteredFaculty.length === 0 ? (
         <div className="text-center py-12">
-          <UserCircleIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <span className="text-gray-400 text-2xl">U</span>
+          </div>
           <h3 className="text-lg font-medium text-gray-900 mb-1">No faculty found</h3>
           <p className="text-gray-500">Try adjusting your search criteria</p>
         </div>
@@ -246,9 +226,7 @@ export default function FacultyDirectory() {
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <p className="text-xs text-blue-600 font-medium flex items-center gap-1">
                       Click to view full profile
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                      <span className="text-base">→</span>
                     </p>
                   </div>
                 </div>
@@ -266,9 +244,9 @@ export default function FacultyDirectory() {
               <h2 className="text-xl font-bold text-gray-900">Complete Faculty Profile</h2>
               <button
                 onClick={closeModal}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-xl font-bold"
               >
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
+                ×
               </button>
             </div>
 
@@ -313,7 +291,6 @@ export default function FacultyDirectory() {
                   )}
                   {selectedFaculty.availableForMentorship && (
                     <span className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                      <StarIcon className="h-3 w-3" />
                       Available for Mentorship
                     </span>
                   )}
@@ -324,7 +301,7 @@ export default function FacultyDirectory() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {selectedFaculty.email && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-gray-400 text-lg">✉</span>
                     <div>
                       <p className="text-xs text-gray-500">Email</p>
                       <p className="text-sm text-gray-900">{selectedFaculty.email}</p>
@@ -333,7 +310,7 @@ export default function FacultyDirectory() {
                 )}
                 {selectedFaculty.contactNumber && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <PhoneIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-gray-400 text-lg">📞</span>
                     <div>
                       <p className="text-xs text-gray-500">Contact</p>
                       <p className="text-sm text-gray-900">{selectedFaculty.contactNumber}</p>
@@ -342,7 +319,7 @@ export default function FacultyDirectory() {
                 )}
                 {selectedFaculty.officeLocation && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <BriefcaseIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-gray-400 text-lg">🏢</span>
                     <div>
                       <p className="text-xs text-gray-500">Office</p>
                       <p className="text-sm text-gray-900">{selectedFaculty.officeLocation}</p>
@@ -351,7 +328,7 @@ export default function FacultyDirectory() {
                 )}
                 {selectedFaculty.linkedinUrl && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <LinkIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-gray-400 text-lg">🔗</span>
                     <div>
                       <p className="text-xs text-gray-500">LinkedIn</p>
                       <a href={selectedFaculty.linkedinUrl} target="_blank" rel="noopener noreferrer" 
@@ -363,7 +340,7 @@ export default function FacultyDirectory() {
                 )}
                 {selectedFaculty.googleScholarUrl && (
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <GlobeAltIcon className="h-5 w-5 text-gray-400" />
+                    <span className="text-gray-400 text-lg">🌐</span>
                     <div>
                       <p className="text-xs text-gray-500">Google Scholar</p>
                       <a href={selectedFaculty.googleScholarUrl} target="_blank" rel="noopener noreferrer" 
@@ -379,7 +356,7 @@ export default function FacultyDirectory() {
               {selectedFaculty.bio && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <UserCircleIcon className="h-4 w-4" />
+                    <span className="text-gray-400 text-base">P</span>
                     Biography
                   </h4>
                   <div className="bg-gray-50 rounded-xl p-4">
@@ -394,7 +371,7 @@ export default function FacultyDirectory() {
               {selectedFaculty.qualifications?.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <AcademicCapIcon className="h-4 w-4" />
+                    <span className="text-gray-400 text-base">Q</span>
                     Qualifications
                   </h4>
                   <ul className="list-disc list-inside space-y-1 bg-gray-50 rounded-xl p-4">
@@ -409,7 +386,7 @@ export default function FacultyDirectory() {
               {selectedFaculty.researchInterests?.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <BookOpenIcon className="h-4 w-4" />
+                    <span className="text-gray-400 text-base">R</span>
                     Research Interests
                   </h4>
                   <div className="flex flex-wrap gap-2">
@@ -429,7 +406,7 @@ export default function FacultyDirectory() {
               {selectedFaculty.publications?.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <BookOpenIcon className="h-4 w-4" />
+                    <span className="text-gray-400 text-base">P</span>
                     Publications ({selectedFaculty.publications.length})
                   </h4>
                   <ul className="list-disc list-inside space-y-1 bg-gray-50 rounded-xl p-4 max-h-48 overflow-y-auto">
@@ -444,7 +421,7 @@ export default function FacultyDirectory() {
               {selectedFaculty.mentorshipAreas?.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <UserGroupIcon className="h-4 w-4" />
+                    <span className="text-gray-400 text-base">M</span>
                     Mentorship Areas
                   </h4>
                   <div className="flex flex-wrap gap-2">
@@ -464,7 +441,7 @@ export default function FacultyDirectory() {
               {selectedFaculty.isAlumnus && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4" />
+                    <span className="text-gray-400 text-base">A</span>
                     Alumni
                   </h4>
                   <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-4">

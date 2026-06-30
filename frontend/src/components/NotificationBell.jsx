@@ -1,6 +1,5 @@
 // components/NotificationBell.jsx
 import { useState, useEffect, useRef } from 'react';
-import { BellIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { formatDistanceToNow } from 'date-fns';
@@ -102,17 +101,17 @@ export default function NotificationBell() {
     return colors[type] || 'border-gray-200 bg-gray-50';
   };
 
-  const getNotificationIcon = (type) => {
-    const icons = {
-      content_submitted: '📤',
-      content_approved: '✅',
-      content_rejected: '❌',
-      content_published: '📢',
-      comment_added: '💬',
-      mention: '👤',
-      system: '⚙️'
+  const getNotificationTypeLabel = (type) => {
+    const labels = {
+      content_submitted: 'Submitted',
+      content_approved: 'Approved',
+      content_rejected: 'Rejected',
+      content_published: 'Published',
+      comment_added: 'Comment',
+      mention: 'Mention',
+      system: 'System'
     };
-    return icons[type] || '📌';
+    return labels[type] || 'Notification';
   };
 
   return (
@@ -122,7 +121,7 @@ export default function NotificationBell() {
         className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
         aria-label="Notifications"
       >
-        <BellIcon className="h-6 w-6" />
+        <span className="text-xl font-bold">🔔</span>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full transform translate-x-1/2 -translate-y-1/2 ring-2 ring-white min-w-[20px]">
             {unreadCount > 99 ? '99+' : unreadCount}
@@ -137,9 +136,8 @@ export default function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
               >
-                <CheckIcon className="h-3 w-3" />
                 Mark all read
               </button>
             )}
@@ -152,7 +150,7 @@ export default function NotificationBell() {
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-gray-400">
-                <BellIcon className="h-12 w-12 mb-2" />
+                <span className="text-4xl mb-2">🔔</span>
                 <p className="text-sm">No notifications yet</p>
               </div>
             ) : (
@@ -165,7 +163,9 @@ export default function NotificationBell() {
                   } ${getNotificationColor(notification.type)}`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-xl">{getNotificationIcon(notification.type)}</span>
+                    <span className="text-sm font-bold text-gray-600 min-w-[60px]">
+                      {getNotificationTypeLabel(notification.type)}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">
                         {notification.title}

@@ -43,10 +43,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
-            <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-gray-500 text-lg">Loading dashboard...</p>
           </div>
         </div>
@@ -95,19 +92,19 @@ export default function Dashboard() {
               label="Total Users"
               value={data.totalUsers}
               gradient="from-blue-500 to-cyan-500"
-              icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
+              icon={<span className="text-white text-xl font-bold">U</span>}
             />
             <StatCard
               label="Faculty (incl. HOD)"
               value={data.totalFaculty}
               gradient="from-purple-500 to-pink-500"
-              icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}
+              icon={<span className="text-white text-xl font-bold">F</span>}
             />
             <StatCard
               label="Students"
               value={data.totalStudents}
               gradient="from-green-500 to-emerald-500"
-              icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>}
+              icon={<span className="text-white text-xl font-bold">S</span>}
             />
           </div>
 
@@ -115,9 +112,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
+                  <span className="text-blue-600 text-lg font-bold">C</span>
                 </div>
                 <h2 className="text-lg font-semibold text-gray-800">Content Overview</h2>
               </div>
@@ -149,9 +144,7 @@ export default function Dashboard() {
                 <Link to="/approvals"
                   className="inline-flex items-center gap-2 mt-6 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25">
                   Review {data.contentCounts.pending_approval} Pending Item{data.contentCounts.pending_approval !== 1 ? 's' : ''}
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
+                  <span className="text-base">→</span>
                 </Link>
               )}
             </div>
@@ -159,9 +152,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <span className="text-purple-600 text-lg font-bold">A</span>
                 </div>
                 <h2 className="text-lg font-semibold text-gray-800">Recent Activity</h2>
               </div>
@@ -193,9 +184,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span className="text-green-600 text-lg font-bold">P</span>
               </div>
               <h2 className="text-lg font-semibold text-gray-800">Recently Published</h2>
             </div>
@@ -215,7 +204,7 @@ export default function Dashboard() {
                       </span>
                       {item.type === 'study_material' && (
                         <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full flex-shrink-0">
-                          📚
+                          Study
                         </span>
                       )}
                     </div>
@@ -240,7 +229,7 @@ export default function Dashboard() {
                   label={type.replace(/_/g, ' ')}
                   value={count}
                   gradient={TYPE_COLORS[type] || 'from-gray-500 to-slate-500'}
-                  icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>}
+                  icon={<span className="text-white text-xl font-bold">T</span>}
                 />
               ))}
             </div>
@@ -249,9 +238,7 @@ export default function Dashboard() {
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span className="text-green-600 text-lg font-bold">P</span>
               </div>
               <h2 className="text-lg font-semibold text-gray-800">Recently Published Content</h2>
             </div>
@@ -270,7 +257,7 @@ export default function Dashboard() {
                         {item.title}
                         {item.type === 'study_material' && (
                           <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                            📚
+                            Study
                           </span>
                         )}
                       </p>

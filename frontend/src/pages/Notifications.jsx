@@ -40,17 +40,17 @@ export default function Notifications() {
     }
   };
 
-  const getIcon = (type) => {
-    const icons = {
-      content_submitted: '📤',
-      content_approved: '✅',
-      content_rejected: '❌',
-      content_published: '📢',
-      comment_added: '💬',
-      mention: '👤',
-      system: '⚙️'
+  const getTypeLabel = (type) => {
+    const labels = {
+      content_submitted: 'Submitted',
+      content_approved: 'Approved',
+      content_rejected: 'Rejected',
+      content_published: 'Published',
+      comment_added: 'Comment',
+      mention: 'Mention',
+      system: 'System'
     };
-    return icons[type] || '📌';
+    return labels[type] || 'Notification';
   };
 
   if (loading) {
@@ -89,7 +89,9 @@ export default function Notifications() {
             }`}
           >
             <div className="flex items-start gap-3">
-              <span className="text-2xl">{getIcon(notification.type)}</span>
+              <span className="text-sm font-semibold text-gray-500 min-w-[80px]">
+                {getTypeLabel(notification.type)}
+              </span>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900">{notification.title}</h3>
                 <p className="text-gray-600 mt-1">{notification.message}</p>

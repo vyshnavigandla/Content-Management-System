@@ -3,19 +3,11 @@ import { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
-import { 
-  ChatBubbleLeftIcon, 
-  PaperAirplaneIcon, 
-  UserCircleIcon,
-  QuestionMarkCircleIcon,
-  LightBulbIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/react/24/outline';
 
 const COMMENT_TYPES = [
-  { value: 'question', label: 'Question', icon: QuestionMarkCircleIcon },
-  { value: 'feedback', label: 'Feedback', icon: LightBulbIcon },
-  { value: 'suggestion', label: 'Suggestion', icon: ExclamationTriangleIcon },
+  { value: 'question', label: 'Question' },
+  { value: 'feedback', label: 'Feedback' },
+  { value: 'suggestion', label: 'Suggestion' },
 ];
 
 export default function CommentSection({ contentId }) {
@@ -118,7 +110,7 @@ export default function CommentSection({ contentId }) {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-          <ChatBubbleLeftIcon className="h-5 w-5 text-blue-600" />
+          <span className="text-blue-600 font-bold text-sm">D</span>
         </div>
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Discussion</h3>
@@ -131,19 +123,17 @@ export default function CommentSection({ contentId }) {
           <div className="space-y-3">
             <div className="flex gap-2">
               {COMMENT_TYPES.map((type) => {
-                const Icon = type.icon;
                 return (
                   <button
                     key={type.value}
                     type="button"
                     onClick={() => setCommentType(type.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       commentType === type.value
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    <Icon className="h-3.5 w-3.5" />
                     {type.label}
                   </button>
                 );
@@ -162,9 +152,8 @@ export default function CommentSection({ contentId }) {
               <button
                 type="submit"
                 disabled={!newComment.trim() || submitting}
-                className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all flex items-center gap-2"
+                className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all"
               >
-                <PaperAirplaneIcon className="h-4 w-4" />
                 {submitting ? 'Posting...' : getSubmitButtonText()}
               </button>
             </div>
@@ -175,7 +164,9 @@ export default function CommentSection({ contentId }) {
       <div className="space-y-4">
         {comments.length === 0 ? (
           <div className="text-center py-8">
-            <ChatBubbleLeftIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3 flex items-center justify-center">
+              <span className="text-gray-400 font-bold text-lg">D</span>
+            </div>
             <p className="text-gray-400">No discussions yet</p>
             <p className="text-sm text-gray-400">Be the first to ask a question</p>
           </div>

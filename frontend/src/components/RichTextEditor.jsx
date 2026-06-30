@@ -66,10 +66,10 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write s
         </ToolbarButton>
         <div className="flex-1" />
         <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Undo" disabled={!editor.can().undo()}>
-          <span className="text-sm">↩</span>
+          <span className="text-sm">Undo</span>
         </ToolbarButton>
         <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Redo" disabled={!editor.can().redo()}>
-          <span className="text-sm">↪</span>
+          <span className="text-sm">Redo</span>
         </ToolbarButton>
       </div>
 

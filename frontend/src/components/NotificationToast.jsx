@@ -1,7 +1,6 @@
 // components/NotificationToast.jsx
 // FIX: auto-dismiss timer now captures toastId correctly in closure
 import { useState, useEffect } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 
 export default function NotificationToast() {
@@ -43,8 +42,8 @@ export default function NotificationToast() {
               <h4 className="font-medium text-gray-900 text-sm">{toast.title}</h4>
               <p className="text-gray-600 text-sm mt-0.5 line-clamp-2">{toast.message}</p>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); dismissToast(toast.id); }} className="flex-shrink-0 text-gray-400 hover:text-gray-600">
-              <XMarkIcon className="h-4 w-4" />
+            <button onClick={(e) => { e.stopPropagation(); dismissToast(toast.id); }} className="flex-shrink-0 text-gray-400 hover:text-gray-600 text-lg font-bold">
+              ×
             </button>
           </div>
         </div>
