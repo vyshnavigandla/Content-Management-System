@@ -62,7 +62,7 @@ const io = socketIo(server, {
 global.io = io;
 
 io.on('connection', (socket) => {
-  console.log('🟢 New client connected:', socket.id);
+  console.log(' New client connected:', socket.id);
   const queryUserId = socket.handshake.query.userId;
   if (queryUserId) {
     socket.join(queryUserId);
@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log(`🔴 Client disconnected: ${socket.id}`);
+    console.log(` Client disconnected: ${socket.id}`);
   });
 });
 
@@ -99,7 +99,7 @@ app.use(cors({
     if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
-      console.log('❌ Blocked origin:', origin);
+      console.log('Blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -132,7 +132,7 @@ app.use('/api/analytics', require('./routes/analyticsRoutes'));
 
 // Serve uploaded files
 app.use('/uploads', express.static(uploadDir));
-console.log(`📁 Serving static files from: ${uploadDir}`);
+console.log(`Serving static files from: ${uploadDir}`);
 
 // Error handling
 app.use(notFound);
@@ -140,6 +140,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📁 Uploads directory: ${uploadDir}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Uploads directory: ${uploadDir}`);
 });
