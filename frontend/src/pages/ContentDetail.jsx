@@ -115,28 +115,32 @@ export default function ContentDetail() {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
   };
 
-  const getFileUrl = (filePath) => {
-    if (!filePath) return '';
-    
-    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-      return filePath;
-    }
-    
-    let cleanPath = filePath;
-    if (cleanPath.startsWith('/')) {
-      cleanPath = cleanPath.substring(1);
-    }
-    
-    if (!cleanPath.startsWith('uploads/')) {
-      cleanPath = `uploads/${cleanPath}`;
-    }
-    
-    const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
-    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
-    
-    return `${cleanBase}/${cleanPath}`;
-  };
+  // pages/ContentDetail.jsx - Fix getFileUrl function
 
+const getFileUrl = (filePath) => {
+  if (!filePath) return '';
+  
+  // If it's already a full URL, return as is
+  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    return filePath;
+  }
+  
+  // ✅ Remove leading slash if present
+  let cleanPath = filePath;
+  if (cleanPath.startsWith('/')) {
+    cleanPath = cleanPath.substring(1);
+  }
+  
+  // ✅ Ensure it starts with 'uploads/'
+  if (!cleanPath.startsWith('uploads/')) {
+    cleanPath = `uploads/${cleanPath}`;
+  }
+  
+  const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  
+  return `${cleanBase}/${cleanPath}`;
+};
   const seoTitle = content?.seo?.metaTitle || content?.title || 'Content';
   const seoDescription = content?.seo?.metaDescription || content?.excerpt || `${seoTitle} - Department CMS`;
   const seoKeywords = content?.seo?.metaKeywords?.join(', ') || '';
