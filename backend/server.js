@@ -25,20 +25,16 @@ connectDB().then(() => startScheduler());
 const app = express();
 const server = http.createServer(app);
 
-// ✅ ADD ALL VERCEL URLS HERE
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:5000',
-  
-  // All Vercel deployment URLs
   'https://content-management-system-14njkovll-gandla-vyshnavi.vercel.app',
   'https://content-management-system-hh2r2a18p-gandla-vyshnavi.vercel.app',
   'https://content-management-system-topaz.vercel.app',
   'https://content-management-system-3eilmwqie-gandla-vyshnavi.vercel.app',
-  'https://content-management-system-o6z5insjy-gandla-vyshnavi.vercel.app', // ✅ ADD THIS
+  'https://content-management-system-o6z5insjy-gandla-vyshnavi.vercel.app',
   'https://content-management-system.vercel.app',
-  
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
@@ -60,7 +56,7 @@ const io = socketIo(server, {
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   },
-  transports: ['websocket', 'polling'], // ✅ Add both transports
+  transports: ['websocket', 'polling'],
 });
 
 global.io = io;

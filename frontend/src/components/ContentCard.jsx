@@ -68,15 +68,28 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
   };
 
+  // ✅ FIXED: Handle all file path formats correctly
   const getFileUrl = (filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
       return filePath;
     }
-    const cleanPath = filePath.startsWith('/') ? filePath.substring(1) : filePath;
+    
     const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
     const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    return `${cleanBase}/${cleanPath}`;
+    
+    // If it already starts with /uploads/, just add the base
+    if (filePath.startsWith('/uploads/')) {
+      return `${cleanBase}${filePath}`;
+    }
+    
+    // If it starts with uploads/ (no leading slash), add slash
+    if (filePath.startsWith('uploads/')) {
+      return `${cleanBase}/${filePath}`;
+    }
+    
+    // Default: assume it's a filename and add uploads/
+    return `${cleanBase}/uploads/${filePath}`;
   };
 
   const imageAttachments = content.attachments?.filter(f => isImageFile(f)) || [];

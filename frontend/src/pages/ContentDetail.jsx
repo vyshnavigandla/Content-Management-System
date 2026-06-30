@@ -79,6 +79,7 @@ export default function ContentDetail() {
         await api.put(`/content/${contentId}/download`);
       }
       const fileUrl = getFileUrl(filePath);
+      console.log('📄 Downloading from:', fileUrl);
       window.open(fileUrl, '_blank');
     } catch (err) {
       console.error('Failed to track download:', err);
@@ -115,32 +116,32 @@ export default function ContentDetail() {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
   };
 
-  // pages/ContentDetail.jsx - Fix getFileUrl function
+  // ✅ FIXED: Handle all file path formats correctly
+  const getFileUrl = (filePath) => {
+    if (!filePath) return '';
+    
+    // If it's already a full URL, return as is
+    if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+      return filePath;
+    }
+    
+    const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    
+    // If it already starts with /uploads/, just add the base
+    if (filePath.startsWith('/uploads/')) {
+      return `${cleanBase}${filePath}`;
+    }
+    
+    // If it starts with uploads/ (no leading slash), add slash
+    if (filePath.startsWith('uploads/')) {
+      return `${cleanBase}/${filePath}`;
+    }
+    
+    // Default: assume it's a filename and add uploads/
+    return `${cleanBase}/uploads/${filePath}`;
+  };
 
-const getFileUrl = (filePath) => {
-  if (!filePath) return '';
-  
-  // If it's already a full URL, return as is
-  if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-    return filePath;
-  }
-  
-  // ✅ Remove leading slash if present
-  let cleanPath = filePath;
-  if (cleanPath.startsWith('/')) {
-    cleanPath = cleanPath.substring(1);
-  }
-  
-  // ✅ Ensure it starts with 'uploads/'
-  if (!cleanPath.startsWith('uploads/')) {
-    cleanPath = `uploads/${cleanPath}`;
-  }
-  
-  const base = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
-  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
-  
-  return `${cleanBase}/${cleanPath}`;
-};
   const seoTitle = content?.seo?.metaTitle || content?.title || 'Content';
   const seoDescription = content?.seo?.metaDescription || content?.excerpt || `${seoTitle} - Department CMS`;
   const seoKeywords = content?.seo?.metaKeywords?.join(', ') || '';
