@@ -222,14 +222,14 @@ export default function Dashboard() {
       {user.role === 'student' && (
         <>
           {data.typeCounts && Object.keys(data.typeCounts).length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
               {Object.entries(data.typeCounts).map(([type, count]) => (
                 <StatCard
                   key={type}
                   label={type.replace(/_/g, ' ')}
                   value={count}
                   gradient={TYPE_COLORS[type] || 'from-gray-500 to-slate-500'}
-                  icon={<span className="text-white text-xl font-bold">T</span>}
+                  icon={null}
                 />
               ))}
             </div>
@@ -287,7 +287,11 @@ function StatCard({ label, value, icon, gradient, subtitle }) {
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
       <div className="flex items-start justify-between mb-4">
         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-lg`}>
-          {icon}
+          {icon || (
+            <span className="text-white text-xl font-bold">
+              {label.charAt(0).toUpperCase()}
+            </span>
+          )}
         </div>
         <p className="text-3xl font-bold text-gray-900 group-hover:scale-110 transition-transform duration-300">
           {value ?? 0}
