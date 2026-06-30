@@ -26,7 +26,7 @@ const TYPE_COLORS = {
   achievement: 'text-yellow-700 bg-yellow-100',
 };
 
-export default function ContentCard({ content, showStatus = true, onDelete, actions = null, isAutoPublished = false }) {
+export default function ContentCard({ content, showStatus = true, onDelete, actions = null }) {
   const [deleting, setDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { user } = useAuth();
@@ -85,19 +85,9 @@ export default function ContentCard({ content, showStatus = true, onDelete, acti
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1 group">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider ${TYPE_COLORS[content.type] || 'text-gray-700 bg-gray-100'}`}>
-              {TYPE_LABELS[content.type] || content.type}
-            </span>
-            {isAutoPublished && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Auto-Published
-              </span>
-            )}
-          </div>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider ${TYPE_COLORS[content.type] || 'text-gray-700 bg-gray-100'}`}>
+            {TYPE_LABELS[content.type] || content.type}
+          </span>
           <h3 className="text-base font-semibold text-gray-900 mt-2 leading-snug">
             <Link to={`/content/${content._id}`} className="hover:text-blue-600 transition-colors line-clamp-2">
               {content.title}

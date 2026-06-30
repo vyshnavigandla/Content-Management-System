@@ -140,11 +140,8 @@ export default function ContentEditor() {
         await api.post('/content', buildFormData(), { headers: { 'Content-Type': 'multipart/form-data' } });
       }
       
-      if (form.type === 'study_material') {
-        setSuccess('✅ Study material published successfully!');
-      } else {
-        setSuccess('✅ Content saved as draft!');
-      }
+      // ✅ All content saved as draft
+      setSuccess('✅ Content saved as draft!');
       setTimeout(() => navigate('/content'), 1500);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save content');
@@ -178,14 +175,14 @@ export default function ContentEditor() {
 
   if (loading) return <div className="flex justify-center py-20"><p className="text-gray-500">Loading editor...</p></div>;
 
-  const isLocked = existing && !['draft', 'rejected'].includes(existing.status) && existing.type !== 'study_material';
+  const isLocked = existing && !['draft', 'rejected'].includes(existing.status);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">{isEditMode ? 'Edit Content' : 'Create New Content'}</h1>
         <p className="text-sm text-gray-500 mt-1">
-          {form.type === 'study_material' ? '📚 Study materials are auto-published immediately' : '📝 Other content requires HOD approval'}
+          📝 All content requires HOD approval before publishing
         </p>
       </div>
 
@@ -238,12 +235,7 @@ export default function ContentEditor() {
             >
               {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
-            {form.type === 'study_material' && (
-              <p className="text-xs text-green-600 mt-1.5">✅ Study materials are published immediately without approval</p>
-            )}
-            {form.type !== 'study_material' && (
-              <p className="text-xs text-yellow-600 mt-1.5">⏳ Other content requires HOD approval before publishing</p>
-            )}
+            <p className="text-xs text-yellow-600 mt-1.5">⏳ All content requires HOD approval before publishing</p>
           </div>
 
           {/* Target Audience */}
@@ -432,20 +424,19 @@ export default function ContentEditor() {
                   Saving...
                 </span>
               ) : (
-                form.type === 'study_material' ? '📚 Publish Study Material' : '💾 Save as Draft'
+                '💾 Save as Draft'
               )}
             </button>
 
-            {form.type !== 'study_material' && (
-              <button 
-                type="button" 
-                onClick={handleSubmitForApproval} 
-                disabled={saving}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 transition-all shadow-lg"
-              >
-                {saving ? 'Submitting...' : '📤 Save & Submit for Approval'}
-              </button>
-            )}
+            {/* ✅ All content types can submit for approval */}
+            <button 
+              type="button" 
+              onClick={handleSubmitForApproval} 
+              disabled={saving}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 transition-all shadow-lg"
+            >
+              {saving ? 'Submitting...' : '📤 Save & Submit for Approval'}
+            </button>
           </div>
         </form>
       )}

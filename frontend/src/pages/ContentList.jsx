@@ -74,10 +74,6 @@ export default function ContentList() {
   const handleSearchSubmit = (e) => { e.preventDefault(); fetchItems(); };
   const handleDelete = (deletedId) => setItems((prev) => prev.filter((item) => item._id !== deletedId));
 
-  const isAutoPublished = (item) => {
-    return item.type === 'study_material' && item.status === 'published';
-  };
-
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="flex items-center justify-between mb-8">
@@ -86,8 +82,8 @@ export default function ContentList() {
           <p className="text-gray-600">
             {isStaff ? 'Manage and track your published content' : 'Browse department publications and updates'}
             {isStaff && (
-              <span className="block text-sm text-green-600 mt-1">
-                📚 Study materials are auto-published immediately
+              <span className="block text-sm text-yellow-600 mt-1">
+                ⏳ All content requires HOD approval before publishing
               </span>
             )}
           </p>
@@ -168,7 +164,6 @@ export default function ContentList() {
                 key={item._id}
                 content={item}
                 onDelete={handleDelete}
-                isAutoPublished={isAutoPublished(item)}
                 actions={
                   isHOD ? null : (
                     isStaff && ['draft', 'rejected'].includes(item.status) ? (

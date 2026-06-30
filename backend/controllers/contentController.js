@@ -193,7 +193,7 @@ const trackDownload = asyncHandler(async (req, res) => {
   }
 });
 
-// ✅ FIXED: Auto-publish study materials
+// ✅ REVERTED: All content goes to draft (including study materials)
 const createContent = asyncHandler(async (req, res) => {
   const {
     title, body, type, subject, semester, tags, category,
@@ -218,14 +218,9 @@ const createContent = asyncHandler(async (req, res) => {
     slug: finalSlug,
   };
 
-  // ✅ Auto-publish study materials, others go to draft
-  let status = 'draft';
-  let publishedAt = null;
-  
-  if (type === 'study_material') {
-    status = 'published';
-    publishedAt = new Date();
-  }
+  // ✅ ALL content goes to draft (including study materials)
+  const status = 'draft';
+  const publishedAt = null;
 
   const content = await Content.create({
     title, body, type,
@@ -242,15 +237,6 @@ const createContent = asyncHandler(async (req, res) => {
     publishedAt: publishedAt,
     createdBy: req.user._id,
   });
-
-  // ✅ Log auto-publish for study materials
-  if (type === 'study_material') {
-    await logAction({
-      user: req.user._id, action: 'STUDY_MATERIAL_AUTO_PUBLISHED',
-      targetId: content._id,
-      remarks: `"${content.title}" study material auto-published`,
-    });
-  }
 
   res.status(201).json({ success: true, data: content });
 });
@@ -303,7 +289,7 @@ const getContentById = asyncHandler(async (req, res) => {
   }
 });
 
-// ✅ FIXED: Allow editing published study materials
+// ✅ REVERTED: Only draft or rejected content can be edited
 const updateContent = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id);
   if (!content) { res.status(404); throw new Error('Content not found'); }
@@ -311,8 +297,8 @@ const updateContent = asyncHandler(async (req, res) => {
     res.status(403); throw new Error('You can only edit your own content');
   }
   
-  // ✅ Allow editing study materials even if published
-  if (content.type !== 'study_material' && !['draft', 'rejected'].includes(content.status)) {
+  // ✅ Only draft or rejected content can be edited
+  if (!['draft', 'rejected'].includes(content.status)) {
     res.status(400); throw new Error('Only draft or rejected content can be edited');
   }
 
@@ -361,13 +347,8 @@ const updateContent = asyncHandler(async (req, res) => {
     content.featuredImage = newFeaturedImage;
   }
 
-  // ✅ Keep study materials published
-  if (content.type === 'study_material') {
-    content.status = 'published';
-    if (!content.publishedAt) {
-      content.publishedAt = new Date();
-    }
-  } else if (content.status === 'rejected') {
+  // ✅ If rejected, set back to draft
+  if (content.status === 'rejected') {
     content.status = 'draft';
     content.reviewRemarks = '';
   }
